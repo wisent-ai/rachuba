@@ -1,15 +1,18 @@
 # rachuba
 
-Payroll for a company with one employee. Computes exact gross-to-net from the
-published federal and state tables, records every run in a ledger under version
-control, and tells you what to deposit, where, and by when. It also projects
-the employee's own federal return for the year, so the estimated tax still owed
-and the worth of each retirement choice are known before the year closes.
+Payroll for a company with one employee. Computes gross-to-net from published
+federal and supported state tables, records paid runs in a ledger under version
+control, and computes federal employment tax deposit and 401(k) remittance
+deadlines. It also projects the employee's own federal return for the year, so
+the estimated tax still owed and the worth of each retirement choice are known
+before the year closes.
 
-It replaces the payroll product, not the payroll obligations. It does not move
-money: deposits go through EFTPS and the state portal, and the elective deferral
-goes to the plan trustee. What it guarantees is that the amounts and the
-due dates are right.
+It does not move money. The operator deposits federal employment taxes through
+EFTPS and sends elective deferrals to the plan trustee; `deposited` and
+`remitted` record those payments. The calendar shows federal payroll form due
+dates, but the ledger does not record filings. State payroll deposits and
+returns, company income and franchise taxes, annual reports, and information
+returns such as 1099s remain outside this tracking.
 
 The documentation source has one page per command in `rachuba-landing`. Its
 public address is <https://rachuba.wisent.com/docs/> when the site is published.
@@ -64,7 +67,7 @@ rachuba stub --pay-date 2026-09-30        # reprint a wage statement
 rachuba ytd                               # year-to-date totals
 rachuba check                             # deferral and section 415(c) limits
 rachuba owed                              # money that has not moved yet
-rachuba calendar                          # every due date for the year
+rachuba calendar                          # supported federal payroll and 401(k) due dates
 rachuba deposited --pay-date 2026-09-30   # record an EFTPS deposit
 rachuba remitted  --pay-date 2026-09-30   # record a deferral reaching the plan
 rachuba retract --pay-date 2026-09-30 --record deposit   # take back a deposited/remitted record
