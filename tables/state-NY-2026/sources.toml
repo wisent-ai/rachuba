@@ -1,0 +1,134 @@
+# New York payroll tax parameters for calendar year 2026.
+#
+# INCOME TAX WITHHOLDING SOURCES
+#
+#   [1] NYS-50-T-NYS (1/26), New York State Withholding Tax Tables and Methods,
+#       NYS Department of Taxation and Finance, revision 1/26, effective
+#       January 1, 2026 - December 31, 2026.
+#       https://www.tax.ny.gov/pdf/publications/withholding/nys50_t_nys.pdf
+#         - page  3: supplemental wage payment withholding rate
+#         - page 14: Table B (deduction allowance), Table C (exemption
+#                    allowance), Table D (federal-allowance adjustment)
+#         - page 16: Method II steps and worked examples, single
+#         - page 17: Method II, SINGLE, "Annual Tax Rate Schedule" and the
+#                    weekly/biweekly/semimonthly/monthly/daily variants
+#         - page 18: Method II steps and worked examples, married
+#         - page 19: Method II, MARRIED, "Annual Tax Rate Schedule" and the
+#                    weekly/biweekly/semimonthly/monthly/daily variants
+#         - page 22: Method III Top Income Tax Rates Method, single and married
+#         - page 23: Conversion of tables to common payroll periods
+#
+#   [2] NYS-50-T-NYC (1/26), New York City Withholding Tax Tables and Methods,
+#       NYS Department of Taxation and Finance, revision 1/26, effective
+#       January 1, 2026 - December 31, 2026.
+#       https://www.tax.ny.gov/pdf/publications/withholding/nys50_t_nyc.pdf
+#         - page  3: supplemental wage payment withholding rate
+#         - page 24: Table B, Table C, Table D
+#         - page 25: Method II, SINGLE, "Annual Tax Rate Schedule" and the
+#                    per-payroll-period variants
+#         - page 26: Method II, MARRIED, same
+#         - page 27: Method II worked examples
+#
+#   [3] NYS-50-T-Y (1/26), Yonkers Withholding Tax Tables and Methods,
+#       NYS Department of Taxation and Finance, revision 1/26, effective
+#       January 1, 2026 - December 31, 2026.
+#       https://www.tax.ny.gov/pdf/publications/withholding/nys50_t_y.pdf
+#         - page  3: supplemental rates, resident and nonresident
+#         - page 14: deduction/exemption allowance tables (identical to [1] p.14)
+#         - pages 17, 19, 22: resident surcharge multiplier 16.75%
+#         - page 24: Method VII, nonresident exact calculation method
+#         - page 25: Method VIII, nonresident annualized exclusion schedule
+#                    and Table P annual factors
+#
+# NON-INCOME-TAX SOURCES
+#
+#   [4] NYS Workers' Compensation Board, "Disability Benefits and Paid Family
+#       Leave Insurance", section "Deduction and waiver - DB and PFL",
+#       retrieved 2026-08-28, citing Workers' Compensation Law (WCL) sec. 209.
+#       https://www.wcb.ny.gov/content/main/DisabilityBenefits/employer-disability-benefits.jsp
+#
+#   [5] paidfamilyleave.ny.gov, "New York Paid Family Leave Updates for 2026",
+#       NYS Paid Family Leave (WCB), retrieved 2026-08-28. Corroborated by WCB
+#       form "Employee Notice of Paid Family Leave Payroll Deduction for 2026".
+#       The employee contribution rate is set annually by the NYS Department of
+#       Financial Services.
+#       https://paidfamilyleave.ny.gov/2026
+#       https://www.wcb.ny.gov/content/main/forms/PFLDocs/pfl-pay-deduction-notice-2026.pdf
+#
+#   [6] Form NYS-50 (12/25), Employer's Guide to Unemployment Insurance, Wage
+#       Reporting, and Withholding Tax, revised December 2025, sections
+#       "Changes to the UI wage base for UI contributions", "Annual wage base",
+#       "Re-employment service fund", and "Newly liable employer".
+#       https://www.tax.ny.gov/forms/publications/wt/nys50.htm
+#
+#   [7] NYS Department of Labor, "Unemployment Insurance Rate Information",
+#       section "Current 2026 Employer Contribution Rate", retrieved
+#       2026-08-28.
+#       https://dol.ny.gov/unemployment-insurance-rate-information
+#
+# CONVENTIONS
+#
+# Bracket rows are [at_least, base_tax, rate_ppm], as in federal-2026.toml.
+# The upper bound of a bracket is the `at_least` of the following row. Money is
+# a decimal string; rates are integer parts per million, so 5.40% is 54000.
+#
+# The NY publications print five columns per row: column 1 "at least",
+# column 2 "but less than", column 3 "subtract this amount from net wages",
+# column 4 the rate, and column 5 "add the result to column 5 amount". In every
+# row of every schedule transcribed below, column 3 EQUALS column 1, so the
+# published formula
+#     tax = column5 + column4 * (net_wages - column3)
+# is exactly the [at_least, base_tax, rate_ppm] form used by this crate:
+# base_tax is column 5 and rate_ppm is column 4 in ppm. This equality was
+# checked row by row; do not assume it holds for a future revision without
+# rechecking.
+#
+# Only the ANNUAL schedule is stored for each jurisdiction and filing status.
+# The publications also print weekly, biweekly, semimonthly, monthly and daily
+# variants of every schedule. Those are not transcribed because they are
+# mechanically derivable from the annual schedule:
+#
+#     period_at_least = annual_at_least / periods_per_year,
+#                       rounded half-to-even to `period_threshold_quantum`
+#     period_base_tax = annual_base_tax / periods_per_year,
+#                       rounded half-to-even to the cent
+#     period_rate_ppm = annual_rate_ppm            (unchanged)
+#
+# That rule was checked against all 170 printed per-period rows across the
+# three publications (New York State single and married, New York City single
+# and married, five payroll periods each). It reproduces 170 of 170 exactly,
+# given the per-jurisdiction `period_threshold_quantum` values below and the
+# two `[[nyc.period_table_overrides]]` entries, which are the only printed
+# values inconsistent with any single rounding rule.
+#
+# See local://ny-withholding-algorithm.md for the full step-by-step procedure,
+# including where rounding happens and how Method III displaces the schedule.
+#
+# To roll this crate to a new tax year: copy this file to state-NY-<year>.toml,
+# replace the numbers from that year's NYS-50-T-NYS, NYS-50-T-NYC, NYS-50-T-Y,
+# the DFS Paid Family Leave rate announcement, and the NYS DOL UI rate notice,
+# re-check the derivation rule against the new printed per-period tables, and
+# update `year`. No code changes.
+
+year = 2026
+source = "NYS-50-T-NYS (1/26), NYS-50-T-NYC (1/26), NYS-50-T-Y (1/26), all rev. 1/26 and effective 2026-01-01 through 2026-12-31; Form NYS-50 (12/25) rev. 2025-12; NYS DOL 2026 UI rate notice; paidfamilyleave.ny.gov 2026 contribution announcement"
+
+# Number of payroll periods in a year. Source [3] page 25 "Table P Annual
+# Factors" gives daily 260, weekly 52, biweekly 26, semimonthly 24, monthly 12.
+# Source [1] page 23 "Conversion of tables" derives quarterly as 3x monthly and
+# supports the same factor arithmetic for semiannual periods. "daily" is the
+# "daily or miscellaneous" payroll period of Tables A through C.
+#
+# Quarterly, semiannual and annual periods have no printed per-period schedule
+# in any of the three publications, so for those the derivation rule above is
+# the only available construction.
+[payroll_periods]
+daily = 260
+weekly = 52
+biweekly = 26
+semimonthly = 24
+monthly = 12
+quarterly = 4
+semiannual = 2
+annual = 1
+

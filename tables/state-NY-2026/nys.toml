@@ -1,0 +1,158 @@
+# ---------------------------------------------------------------------------
+# NEW YORK STATE personal income tax withholding.
+# ---------------------------------------------------------------------------
+
+[nys]
+# Source [1] page 3. Optional flat rate for supplemental wages paid separately
+# from regular wages, when income tax was withheld from regular wages: 11.70%.
+supplemental_rate_ppm = 117000
+
+# Source [1] pages 16 and 18, "Steps for calculating the amount of tax to be
+# withheld": "If the annualized amount of net wages is at least $1,077,550
+# [single] / $2,155,350 [married], then you must use Method III". Above this,
+# the bracket schedule is abandoned entirely in favour of [nys.top_rates].
+#
+# These equal the upper bound of the last bracket row for each status, so a
+# lookup that runs off the end of the schedule is exactly the Method III case.
+method_iii_threshold_single = "1077550.00"
+method_iii_threshold_married = "2155350.00"
+
+# Source [1] page 14, Table D, annual payroll row. OPTIONAL, not used by the
+# normative algorithm.
+#
+# Table D exists only for employers who keep a federal allowance count instead
+# of a New York allowance count. Such an employer computes federal "wages after
+# allowances" and then adds back this amount per allowance to correct for the
+# difference between the federal withholding allowance and New York's $1,000
+# exemption allowance. Page 14 footnote: the printed adjustment is based on the
+# 2025 federal withholding allowance of $4,300, and for an annual payroll
+# period it "should be changed by subtracting $1,000 from the current federal
+# allowance amount".
+#
+# 4300.00 - 1000.00 = 3300.00. The 2026 federal withholding allowance is also
+# $4,300 (see `withholding.allowance_value` in federal-2026.toml, from IRS
+# Publication 15-T (2026) Worksheet 1A line 1k), so the printed figure is
+# current for 2026 and needs no restatement.
+federal_allowance_adjustment_annual = "3300.00"
+
+# Source [1] page 14, Table B "Deduction allowance". New York's
+# standard-deduction-equivalent subtraction from wages, selected by payroll
+# period and by the marital status claimed on Form IT-2104.
+#
+# These are NOT the annual figure divided by the period count: the publication
+# prints them rounded to the nearest nickel and reuses the semimonthly and
+# weekly figures to build the monthly and biweekly ones, so e.g. monthly single
+# is 616.70 where 7400/12 is 616.667. Transcribed as printed.
+[nys.deduction_allowance]
+daily       = { single =   "28.45", married =   "30.60" }
+weekly      = { single =  "142.30", married =  "152.90" }
+biweekly    = { single =  "284.60", married =  "305.80" }
+semimonthly = { single =  "308.35", married =  "331.25" }
+monthly     = { single =  "616.70", married =  "662.50" }
+annual      = { single = "7400.00", married = "7950.00" }
+
+# Source [1] page 14, Table C "Exemption allowance". Value of ONE withholding
+# allowance claimed on Form IT-2104; multiply by the number of allowances.
+#
+# Table A on page 14 is the precomputed sum of Table B and n * Table C for
+# n = 0..10, so it is not stored. Verified derivable at both ends of the
+# printed grid: annual single n=10 -> 7400 + 10*1000 = 17400, and monthly
+# married n=10 -> 662.50 + 10*83.30 = 1495.50, both matching Table A.
+[nys.exemption_allowance]
+daily       =    "3.85"
+weekly      =   "19.25"
+biweekly    =   "38.50"
+semimonthly =   "41.65"
+monthly     =   "83.30"
+annual      = "1000.00"
+
+# Rounding quantum for a derived per-period bracket threshold. Every New York
+# State period table prints thresholds as whole dollars. Confirmed against all
+# 50 printed single rows and 60 printed married rows on pages 17 and 19.
+[nys.period_threshold_quantum]
+daily       = "1.00"
+weekly      = "1.00"
+biweekly    = "1.00"
+semimonthly = "1.00"
+monthly     = "1.00"
+quarterly   = "1.00"
+semiannual  = "1.00"
+annual      = "1.00"
+
+# Method II Exact Calculation Method, "Annual Tax Rate Schedule".
+#
+# The 2026 rate schedules were revised for the income tax rate reductions
+# enacted by Chapter 59 of the Laws of 2025 (Part A); source [1] page 3,
+# "General changes for 2026".
+#
+# NOTE ON THE NON-MONOTONIC RATE COLUMN. New York does not publish a separate
+# post-bracket recapture or adjustment table for the exact calculation method.
+# The recapture of the benefit of the lower brackets is folded directly INTO
+# these rows, which is why the rate column rises and falls instead of
+# increasing monotonically (single: 7.53% -> 6.40% -> 11.44% -> 7.35%;
+# married: 8.01% -> 6.40% -> 13.49% -> 7.35% -> 7.65%). There is nothing to
+# apply after the bracket lookup. The only regime change above the schedule is
+# Method III in [nys.top_rates].
+#
+# The base_tax column is published rounded to whole dollars, so consecutive
+# rows are not perfectly continuous. Single row 8 into row 9 closes exactly
+# (9673 + 0.0640*57750 = 13369.00), but row 9 into row 10 leaves a seam
+# (13369 + 0.1144*50000 = 19089.00 against a printed base of 19091.00). These
+# $0.15 to $2.00 seams are in the publication and are transcribed as printed;
+# do not "fix" them.
+[nys.brackets]
+# Source [1] page 17, single, 10 rows.
+single = [
+  [       "0.00",     "0.00",  39000],
+  [    "8500.00",   "332.00",  44000],
+  [   "11700.00",   "472.00",  51500],
+  [   "13900.00",   "586.00",  54000],
+  [   "80650.00",  "4190.00",  59000],
+  [   "96800.00",  "5143.00",  70300],
+  [  "107650.00",  "5906.00",  75300],
+  [  "157650.00",  "9673.00",  64000],
+  [  "215400.00", "13369.00", 114400],
+  [  "265400.00", "19091.00",  73500],
+]
+# Source [1] page 19, married, 12 rows. Rows 1 through 5 are identical to
+# single; the schedules diverge from row 6 on.
+married = [
+  [       "0.00",     "0.00",  39000],
+  [    "8500.00",   "332.00",  44000],
+  [   "11700.00",   "472.00",  51500],
+  [   "13900.00",   "586.00",  54000],
+  [   "80650.00",  "4190.00",  59000],
+  [   "96800.00",  "5143.00",  65700],
+  [  "107650.00",  "5855.00",  70700],
+  [  "157650.00",  "9388.00",  80100],
+  [  "211550.00", "13708.00",  64000],
+  [  "323200.00", "20854.00", 134900],
+  [  "373200.00", "27600.00",  73500],
+  [ "1077550.00", "79369.00",  76500],
+]
+
+# Method III Top Income Tax Rates Method. Source [1] page 22.
+#
+# THESE ARE NOT BRACKET ROWS AND MUST NOT BE FED TO A BRACKET EVALUATOR.
+# Rows are [at_least, rate_ppm] with only two elements precisely so that they
+# cannot be mistaken for the three-element [at_least, base_tax, rate_ppm]
+# shape. Method III multiplies the ENTIRE annualized net wage by the selected
+# rate; there is no base amount and no "excess over at_least". Source [1]
+# page 22, Step 3: "Multiply the amount of annualized net wages from Step 1 by
+# the decimal in column 3."
+#
+# The two statuses differ only in the entry threshold of the first row; the
+# 5,000,000 and 25,000,000 breakpoints and all three rates are common. The
+# top rate, 11.70%, is also the state supplemental rate.
+[nys.top_rates]
+single = [
+  [ "1077550.00", 104500],
+  [ "5000000.00", 111000],
+  ["25000000.00", 117000],
+]
+married = [
+  [ "2155350.00", 104500],
+  [ "5000000.00", 111000],
+  ["25000000.00", 117000],
+]
+

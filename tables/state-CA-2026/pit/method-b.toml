@@ -1,0 +1,224 @@
+# ---------------------------------------------------------------------------
+# CALIFORNIA PERSONAL INCOME TAX (PIT) WITHHOLDING.
+# Method B - Exact Calculation Method.
+# ---------------------------------------------------------------------------
+
+[pit]
+# Source [1] page 18, "How to Withhold PIT on Supplemental Wages". TWO
+# DIFFERENT FLAT RATES, and they are not interchangeable:
+#
+#   Bonuses and stock options ........................ 10.23 percent (.1023)
+#   Other types (overtime pay, commissions, sales
+#     awards, severance, and vacation pay) ...........  6.6 percent (.066)
+#
+# "This only applies to stock options that are considered wages subject to PIT
+# withholding" (source [1] page 18).
+#
+# Both flat rates are available ONLY when the supplemental wage is NOT paid at
+# the same time as regular wages. Source [1] page 18: if it IS paid at the same
+# time, "you are required to treat the sum of the payments as regular wages and
+# withhold PIT based on the regular payroll period using the PIT withholding
+# schedules" -- the flat rates are not an option in that case. When paid
+# separately the employer may instead use the aggregate method (compute Method B
+# on regular + supplemental, subtract the Method B tax on regular alone).
+#
+# Neither flat rate allows any withholding allowance: source [1] page 18,
+# "without allowing for any withholding allowances claimed by the employee".
+# So no Table 1, 2, 3 or 4 amount enters a flat-rate supplemental computation,
+# and in particular the low income exemption does NOT apply to it.
+#
+# 10.23% is also the sixth rate in every one of the 24 tax rate tables below,
+# and 6.6% is the fourth. That is a coincidence of the 1.1 factor, not a
+# relationship a consumer may rely on; these are separate published figures.
+supplemental_rate_bonus_and_stock_options_ppm = 102300
+supplemental_rate_other_ppm = 66000
+
+# Source [2] page 1: Method A, the Wage Bracket Table Method, is "Limited to
+# wages or salaries less than $1 million". Method B, the exact calculation
+# method transcribed here, carries no such limit and is the only method valid
+# at and above $1,000,000. Source [1] page 42 confirms this from the other
+# side: the last line of every Method A wage bracket table reads "& Over (Use
+# Method B - Exact Calculation Method)".
+#
+# Recorded so that a consumer can assert it never needs Method A, which this
+# file deliberately does not carry. Method B is exact at every wage level.
+method_a_wage_limit = "1000000.00"
+
+# Method B - Table 1: Low Income Exemption Table.
+# Source [1] page 46; source [2] page 5.
+#
+# STEP 1 SHORT-CIRCUITS THE WHOLE CALCULATION. Source [1] page 43, Step 1:
+# "Determine if the employee's gross wages are less than, or equal to, the
+# amount shown in Table 1 - Low Income Exemption Table. If so, no income tax is
+# required to be withheld." The comparison is against GROSS wages, before any
+# estimated deduction (Table 2) and before the standard deduction (Table 3),
+# and it is `<=`, so a gross wage exactly equal to the figure withholds nothing.
+#
+# This is not a zero bracket and not a deduction. It is a cliff: one cent above
+# the figure, the full Method B computation runs on the full gross. Source [1]
+# page 43 Example A is exactly this case (weekly $210 against $363: nothing
+# withheld, no further steps).
+#
+# THE COLUMN NAMES BELOW ARE NOT FILING STATUSES. See the header. A married
+# employee's column depends on the number of REGULAR allowances claimed.
+[pit.low_income_exemption]
+weekly      = { single_or_dual_income_married =   "363.00", married_0_or_1_allowances =   "363.00", married_2_or_more_allowances =   "727.00", head_of_household =   "727.00" }
+biweekly    = { single_or_dual_income_married =   "727.00", married_0_or_1_allowances =   "727.00", married_2_or_more_allowances =  "1454.00", head_of_household =  "1454.00" }
+semimonthly = { single_or_dual_income_married =   "787.00", married_0_or_1_allowances =   "787.00", married_2_or_more_allowances =  "1575.00", head_of_household =  "1575.00" }
+monthly     = { single_or_dual_income_married =  "1575.00", married_0_or_1_allowances =  "1575.00", married_2_or_more_allowances =  "3149.00", head_of_household =  "3149.00" }
+quarterly   = { single_or_dual_income_married =  "4724.00", married_0_or_1_allowances =  "4724.00", married_2_or_more_allowances =  "9448.00", head_of_household =  "9448.00" }
+semiannual  = { single_or_dual_income_married =  "9448.00", married_0_or_1_allowances =  "9448.00", married_2_or_more_allowances = "18896.00", head_of_household = "18896.00" }
+annual      = { single_or_dual_income_married = "18896.00", married_0_or_1_allowances = "18896.00", married_2_or_more_allowances = "37791.00", head_of_household = "37791.00" }
+daily       = { single_or_dual_income_married =    "73.00", married_0_or_1_allowances =    "73.00", married_2_or_more_allowances =   "145.00", head_of_household =   "145.00" }
+
+# Method B - Table 3: Standard Deduction Table.
+# Source [1] page 47; source [2] page 6.
+#
+# Subtracted at Step 3 to produce taxable income. Same four printed columns and
+# the same column-selection rule as Table 1, and the values are consistently
+# smaller than the corresponding low income exemption, which is why taxable
+# income is always positive once Step 1 has been passed -- UNLESS estimated
+# deduction allowances are claimed at Step 2, which can drive it negative. See
+# local://ca-withholding-algorithm.md section 6.
+[pit.standard_deduction]
+weekly      = { single_or_dual_income_married =  "110.00", married_0_or_1_allowances =  "110.00", married_2_or_more_allowances =   "219.00", head_of_household =   "219.00" }
+biweekly    = { single_or_dual_income_married =  "219.00", married_0_or_1_allowances =  "219.00", married_2_or_more_allowances =   "439.00", head_of_household =   "439.00" }
+semimonthly = { single_or_dual_income_married =  "238.00", married_0_or_1_allowances =  "238.00", married_2_or_more_allowances =   "476.00", head_of_household =   "476.00" }
+monthly     = { single_or_dual_income_married =  "476.00", married_0_or_1_allowances =  "476.00", married_2_or_more_allowances =   "951.00", head_of_household =   "951.00" }
+quarterly   = { single_or_dual_income_married = "1427.00", married_0_or_1_allowances = "1427.00", married_2_or_more_allowances =  "2853.00", head_of_household =  "2853.00" }
+semiannual  = { single_or_dual_income_married = "2853.00", married_0_or_1_allowances = "2853.00", married_2_or_more_allowances =  "5706.00", head_of_household =  "5706.00" }
+annual      = { single_or_dual_income_married = "5706.00", married_0_or_1_allowances = "5706.00", married_2_or_more_allowances = "11412.00", head_of_household = "11412.00" }
+daily       = { single_or_dual_income_married =   "22.00", married_0_or_1_allowances =   "22.00", married_2_or_more_allowances =    "44.00", head_of_household =    "44.00" }
+
+# Method B - Table 2: Estimated Deduction Table.
+# Source [1] page 46; source [2] page 5.
+#
+# NOT BRACKET ROWS. Each period's value is a TEN-ELEMENT array indexed by the
+# number of ADDITIONAL withholding allowances for estimated deductions claimed
+# on Form DE 4, for counts 1 through 10; element 0 of the array is the amount
+# for ONE such allowance. There is no rate and no threshold here.
+#
+# WHICH ALLOWANCE COUNT THIS IS. Source [2] page 1 and source [1] page 43
+# footnote 1 keep two allowance counts strictly apart:
+#   - REGULAR withholding allowances (DE 4 line 1) drive Table 1, Table 3 and
+#     Table 4;
+#   - ADDITIONAL allowances for ESTIMATED DEDUCTIONS (DE 4 line 2) drive this
+#     table ONLY, and source [1] page 43 footnote 1 is explicit that such
+#     allowances "must not be used in the determination of tax credits to be
+#     subtracted", i.e. they never enter Table 4.
+# Source [1] page 43 Example B is the case that pins this down: three
+# allowances claimed, one of them for estimated deductions, so Table 2 is read
+# at 1 ($38) while Table 1, Table 3 and Table 4 are all read at 2 regular
+# allowances.
+#
+# If the employer holds a pre-2020 Form W-4 rather than a DE 4, source [2]
+# page 1 requires all additional estimated-deduction allowances to be treated
+# as REGULAR allowances (so this table is not used at all) unless the employee
+# asks in writing for the split treatment.
+#
+# ABOVE TEN. Source [1] page 46 footnote 2: "If the number of Additional
+# Withholding Allowances for Estimated Deductions claimed is greater than 10,
+# multiply the amount shown for one Additional Allowance by the number
+# claimed." So for n > 10 the value is n * element 0, NOT an extrapolation of
+# the printed row. See the same discontinuity, quantified, under
+# [pit.exemption_allowance].
+#
+# The printed cells are round-half-up(n * $1,000 / periods_per_year) to the
+# dollar, which is why they are not n times element 0 (weekly n=3 prints $58,
+# not 3 * $19 = $57). Transcribed as printed.
+[pit.estimated_deduction]
+weekly      = [   "19.00",   "38.00",   "58.00",   "77.00",   "96.00",  "115.00",  "135.00",  "154.00",  "173.00",   "192.00" ]
+biweekly    = [   "38.00",   "77.00",  "115.00",  "154.00",  "192.00",  "231.00",  "269.00",  "308.00",  "346.00",   "385.00" ]
+semimonthly = [   "42.00",   "83.00",  "125.00",  "167.00",  "208.00",  "250.00",  "292.00",  "333.00",  "375.00",   "417.00" ]
+monthly     = [   "83.00",  "167.00",  "250.00",  "333.00",  "417.00",  "500.00",  "583.00",  "667.00",  "750.00",   "833.00" ]
+quarterly   = [  "250.00",  "500.00",  "750.00", "1000.00", "1250.00", "1500.00", "1750.00", "2000.00", "2250.00",  "2500.00" ]
+semiannual  = [  "500.00", "1000.00", "1500.00", "2000.00", "2500.00", "3000.00", "3500.00", "4000.00", "4500.00",  "5000.00" ]
+annual      = [ "1000.00", "2000.00", "3000.00", "4000.00", "5000.00", "6000.00", "7000.00", "8000.00", "9000.00", "10000.00" ]
+daily       = [    "4.00",    "8.00",   "12.00",   "15.00",   "19.00",   "23.00",   "27.00",   "31.00",   "35.00",    "38.00" ]
+
+# Method B - Table 4: Exemption Allowance Table.
+# Source [1] page 47; source [2] page 6.
+#
+# NOT BRACKET ROWS, and NOT A DEDUCTION FROM WAGES. This is a TAX CREDIT,
+# subtracted from the computed tax at Step 5, after the bracket lookup. Source
+# [1] page 43, Step 5: "Subtract the tax credit shown in Table 4 - Exemption
+# Allowance Table from the computed tax liability to arrive at the amount of tax
+# to be withheld." Subtracting it from wages instead of from tax is a large
+# error, not a rounding one.
+#
+# Ten-element array indexed by the number of REGULAR withholding allowances,
+# 1 through 10; element 0 is the credit for ONE allowance. The publication also
+# prints a row for 0 allowances, which is $0.00 in every period and is
+# therefore not stored: zero allowances means zero credit.
+#
+# The printed cells are round-half-up(n * $168.30 / periods_per_year) to the
+# cent, verified for all 80 of them. $168.30 is the annual value of one
+# allowance.
+#
+# ABOVE TEN: A GENUINE DISCONTINUITY, TRANSCRIBED FAITHFULLY. Source [1] page
+# 47 footnote 1: "If the number of allowances claimed exceeds 10, you may
+# determine the amount of tax credit to be allowed by multiplying the amount for
+# one allowance by the total number of allowances. For example, the amount of
+# tax credit for a married taxpayer with 15 allowances ... on a weekly payroll
+# period would be $48.60." That is 15 * $3.24, and it does NOT equal
+# round(15 * 168.30 / 52) = $48.55. So the rule changes shape at 11:
+#
+#   weekly, n = 10 -> $32.37  (printed row)      = round(10 * 168.30/52)
+#   weekly, n = 11 -> $35.64  (11 * $3.24)       vs round(11 * 168.30/52) = $35.60
+#   weekly, n = 15 -> $48.60  (15 * $3.24)       vs round(15 * 168.30/52) = $48.55
+#
+# Use the printed array for n <= 10 and n * element 0 for n > 10. The
+# publication's own worked figure of $48.60 reproduces exactly under that rule.
+# Do not "smooth" the seam; the employer is entitled to the published amount.
+#
+# There is no cap on the number of allowances.
+[pit.exemption_allowance]
+weekly      = [  "3.24",  "6.47",  "9.71", "12.95", "16.18", "19.42",  "22.66",  "25.89",  "29.13",  "32.37" ]
+biweekly    = [  "6.47", "12.95", "19.42", "25.89", "32.37", "38.84",  "45.31",  "51.78",  "58.26",  "64.73" ]
+semimonthly = [  "7.01", "14.03", "21.04", "28.05", "35.06", "42.08",  "49.09",  "56.10",  "63.11",  "70.13" ]
+monthly     = [ "14.03", "28.05", "42.08", "56.10", "70.13", "84.15",  "98.18", "112.20", "126.23", "140.25" ]
+quarterly   = [ "42.08", "84.15", "126.23", "168.30", "210.38", "252.45", "294.53", "336.60", "378.68", "420.75" ]
+semiannual  = [ "84.15", "168.30", "252.45", "336.60", "420.75", "504.90", "589.05", "673.20", "757.35", "841.50" ]
+annual      = [ "168.30", "336.60", "504.90", "673.20", "841.50", "1009.80", "1178.10", "1346.40", "1514.70", "1683.00" ]
+daily       = [  "0.65",  "1.29",  "1.94",  "2.59",  "3.24",  "3.88",   "4.53",   "5.18",   "5.83",   "6.47" ]
+
+# Method B - Tables 5 through 28: Tax Rate Tables.
+# Source [1] pages 48-51; source [2] pages 7-10.
+#
+# Applied at Step 4, to TAXABLE INCOME (gross, less any Table 2 estimated
+# deduction, less the Table 3 standard deduction), selected by payroll period
+# and by MARITAL STATUS. Source [1] page 43, Step 4: "Use Tables 5-28 - Tax
+# Rate Table for the payroll period and marital status to find the applicable
+# line on which the taxable income is located."
+#
+# THE STATUS USED HERE IS THE PLAIN MARITAL STATUS, WITH NO ALLOWANCE-COUNT
+# SPLIT. A married employee uses `married_one_employer` whatever the allowance
+# count, even though that same employee's Table 1 and Table 3 amounts DO depend
+# on the allowance count. Source [1] page 43 Example B is the proof: a married
+# employee with 2 regular allowances takes the married-'2'-or-more Table 1 and
+# Table 3 figures ($1,454 and $439) and the plain Married bi-weekly rate table
+# (Table 27, "over $852 but not over $2,020", plus $9.37).
+#
+# The three keys are California's three published schedules:
+#   single_or_dual_income_married  "Single Persons, Dual Income Married or
+#                                  Married with Multiple Employers"
+#   married_one_employer           "Married Persons"
+#   head_of_household              "Unmarried/Head of Household"
+#
+# `married_one_employer` is named for what distinguishes it: a married employee
+# whose spouse also works, or who has more than one employer, uses the SINGLE
+# schedule, not this one. Source [2] page 1, "Special Note for Married Employees
+# with Employed Spouses", recommends exactly that ("Single filing status to
+# compute withholding amounts for the employee and spouse; or withhold an
+# additional flat amount of tax") to avoid underwithholding.
+#
+# Unlike New York, California DOES have a head-of-household withholding
+# schedule; a head-of-household filer must not be routed to the single tables.
+#
+# The rate column is strictly increasing in every table, and every row's
+# base_tax closes into the next to within half a cent (checked for all 240
+# rows). There is no recapture table, no top-rates method, and no regime change
+# above the schedule: the final row of every table is genuinely unbounded, and
+# source [1] pages 48-51 print it as "and over". The only post-lookup step is
+# subtracting the Table 4 credit.
+

@@ -1,0 +1,128 @@
+# The employee's own federal income tax return for tax year 2026: the rate
+# schedules, the standard deduction, the capital gains rate thresholds, the
+# net investment income tax, the Additional Medicare Tax as the return
+# reconciles it, and the estimated tax safe harbor. `rachuba return` reads
+# this section; payroll runs never do.
+#
+# Sources:
+#   [1] Rev. Proc. 2025-32, section 4.01 (Tables 1 to 4), section 4.03
+#       (maximum zero rate and 15 percent rate amounts) and section 4.14
+#       (standard deduction, including the aged or blind addition).
+#       https://www.irs.gov/pub/irs-drop/rp-25-32.pdf
+#   [2] 26 U.S.C. 1(h)(1): the 0, 15 and 20 percent rates on net capital
+#       gain and qualified dividends.
+#   [3] 26 U.S.C. 1211(b): a net capital loss offsets at most $3,000 of other
+#       income, $1,500 on a separate return. Not indexed.
+#   [4] 26 U.S.C. 1411(a)(1) and (b): net investment income tax at 3.8% of
+#       the lesser of net investment income and modified adjusted gross income
+#       above the threshold. Not indexed.
+#   [5] 26 U.S.C. 3101(b)(2) and Form 8959: Additional Medicare Tax at 0.9%
+#       of Medicare wages above the threshold. Not indexed.
+#   [6] 26 U.S.C. 6654(d)(1)(B) and (C) and 6654(e)(1): the required annual
+#       payment is the lesser of 90% of this year's tax and 100% of last
+#       year's, 110% when last year's adjusted gross income exceeded $150,000
+#       ($75,000 on a separate return); no addition applies when the tax
+#       after withholding is under $1,000.
+
+[individual]
+source = "Rev. Proc. 2025-32 sections 4.01, 4.03, 4.14; 26 U.S.C. 1(h), 1211(b), 1411, 3101(b)(2), 6654"
+
+# Rate schedules, source [1] section 4.01. Each row is
+# [over, base_tax, rate_ppm]: tax is base_tax plus rate on the excess over the
+# row's first column, the same shape as the withholding schedules.
+[individual.rates]
+# Table 1, married individuals filing joint returns and surviving spouses.
+married_filing_jointly = [
+  [      "0.00",       "0.00", 100000],
+  [  "24800.00",    "2480.00", 120000],
+  [ "100800.00",   "11600.00", 220000],
+  [ "211400.00",   "35932.00", 240000],
+  [ "403550.00",   "82048.00", 320000],
+  [ "512450.00",  "116896.00", 350000],
+  [ "768700.00",  "206583.50", 370000],
+]
+# Table 2, heads of households.
+head_of_household = [
+  [      "0.00",       "0.00", 100000],
+  [  "17700.00",    "1770.00", 120000],
+  [  "67450.00",    "7740.00", 220000],
+  [ "105700.00",   "16155.00", 240000],
+  [ "201750.00",   "39207.00", 320000],
+  [ "256200.00",   "56631.00", 350000],
+  [ "640600.00",  "191171.00", 370000],
+]
+# Table 3, unmarried individuals other than surviving spouses and heads of
+# households.
+single = [
+  [      "0.00",       "0.00", 100000],
+  [  "12400.00",    "1240.00", 120000],
+  [  "50400.00",    "5800.00", 220000],
+  [ "105700.00",   "17966.00", 240000],
+  [ "201775.00",   "41024.00", 320000],
+  [ "256225.00",   "58448.00", 350000],
+  [ "640600.00",  "192979.25", 370000],
+]
+# Table 4, married individuals filing separate returns.
+married_filing_separately = [
+  [      "0.00",       "0.00", 100000],
+  [  "12400.00",    "1240.00", 120000],
+  [  "50400.00",    "5800.00", 220000],
+  [ "105700.00",   "17966.00", 240000],
+  [ "201775.00",   "41024.00", 320000],
+  [ "256225.00",   "58448.00", 350000],
+  [ "384350.00",  "103291.75", 370000],
+]
+
+# Standard deduction, source [1] section 4.14(1) and (3). The aged or blind
+# addition is per box checked: $2,050 for an unmarried filer who is not a
+# surviving spouse, $1,650 for everyone else.
+[individual.standard_deduction]
+married_filing_jointly = "32200.00"
+head_of_household = "24150.00"
+single = "16100.00"
+married_filing_separately = "16100.00"
+aged_or_blind_married = "1650.00"
+aged_or_blind_unmarried = "2050.00"
+
+# Capital gains, source [1] section 4.03 for the thresholds and source [2] for
+# the rates. Each status row is [maximum zero rate amount, maximum 15 percent
+# rate amount], read against taxable income on the Qualified Dividends and
+# Capital Gain Tax Worksheet.
+[individual.capital_gains]
+middle_rate_ppm = 150000
+top_rate_ppm = 200000
+married_filing_jointly = ["98900.00", "613700.00"]
+married_filing_separately = ["49450.00", "306850.00"]
+head_of_household = ["66200.00", "579600.00"]
+single = ["49450.00", "545500.00"]
+
+# Net capital loss deductible against other income, source [3].
+[individual.capital_loss_limit]
+married_filing_separately = "1500.00"
+other = "3000.00"
+
+# Net investment income tax, source [4]. "other" is single and head of
+# household.
+[individual.net_investment_income_tax]
+rate_ppm = 38000
+married_filing_jointly = "250000.00"
+married_filing_separately = "125000.00"
+other = "200000.00"
+
+# Additional Medicare Tax on the return, source [5]. The employer withholds it
+# above $200,000 of one employer's wages whatever the filing status; the
+# return settles it against these thresholds.
+[individual.additional_medicare]
+rate_ppm = 9000
+married_filing_jointly = "250000.00"
+married_filing_separately = "125000.00"
+other = "200000.00"
+
+# Estimated tax, source [6].
+[individual.estimated_tax]
+current_year_ppm = 900000
+prior_year_ppm = 1000000
+prior_year_high_income_ppm = 1100000
+high_income_agi = "150000.00"
+high_income_agi_separate = "75000.00"
+minimum_balance_due = "1000.00"

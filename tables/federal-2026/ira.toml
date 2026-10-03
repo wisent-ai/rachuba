@@ -1,0 +1,45 @@
+# Individual retirement arrangements for tax year 2026: the contribution
+# limit, the catch-up, and the income ranges over which the traditional IRA
+# deduction and the Roth IRA contribution phase out. `rachuba return` reads
+# this section.
+#
+# Sources:
+#   [1] IRS News Release IR-2025-111, 13 November 2025, and Notice 2025-67:
+#       the 2026 IRA limit, the IRA catch-up, and every phase-out range below.
+#       https://www.irs.gov/newsroom/401k-limit-increases-to-24500-for-2026-ira-limit-increases-to-7500
+#   [2] 26 U.S.C. 219(b)(5)(B): the catch-up applies to an individual who has
+#       attained age 50 before the close of the taxable year.
+#   [3] 26 U.S.C. 219(g)(2)(B) and (C), applied to the Roth limit by
+#       408A(c)(3)(A): a reduced limit is rounded up to the next $10 (the
+#       reduction is rounded down) and is never below $200 unless the phase-out
+#       is complete.
+#
+# Each range is [phase-out begins, phase-out complete], read against modified
+# adjusted gross income.
+
+[ira]
+source = "IR-2025-111 and Notice 2025-67; 26 U.S.C. 219(b)(5), 219(g)(2), 408A(c)(3)"
+contribution_limit = "7500.00"
+catch_up = "1100.00"
+catch_up_age = 50
+rounding_increment = "10.00"
+minimum_reduced_limit = "200.00"
+
+# Traditional IRA deduction when the contributor is covered by a workplace
+# retirement plan. "other" is single and head of household.
+[ira.deduction_covered]
+married_filing_jointly = ["129000.00", "149000.00"]
+married_filing_separately = ["0.00", "10000.00"]
+other = ["81000.00", "91000.00"]
+
+# Traditional IRA deduction when the contributor is not covered but is married
+# to someone who is, on a joint return.
+[ira.deduction_spouse_covered]
+married_filing_jointly = ["242000.00", "252000.00"]
+married_filing_separately = ["0.00", "10000.00"]
+
+# Roth IRA contribution.
+[ira.roth]
+married_filing_jointly = ["242000.00", "252000.00"]
+married_filing_separately = ["0.00", "10000.00"]
+other = ["153000.00", "168000.00"]

@@ -1,0 +1,228 @@
+# ---------------------------------------------------------------------------
+# CALIFORNIA EMPLOYMENT TRAINING TAX (ETT). Employer-only.
+# ---------------------------------------------------------------------------
+#
+# Source [1] page ii: "The 2026 ETT rate is 0.1 percent (.001) on the first
+# $7,000 of each employee's wages." Source [1] page 8: "The tax rate is set by
+# statute at 0.1 percent (.001) of UI taxable wages for employers with positive
+# UI reserve account balances and subject to section 977(c) of the California
+# Unemployment Insurance Code (CUIC). The maximum tax is $7 per employee per
+# year ($7,000 x .001)."
+#
+# TWO CONSEQUENCES A CONSUMER MUST NOT MISS:
+#
+#   1. ETT is NOT owed by every employer. It applies to employers with a
+#      POSITIVE UI reserve account balance. An employer with a negative reserve
+#      account is not assessed ETT, and its DE 2088 shows an ETT rate of 0.0%.
+#      `applies_only_with_positive_reserve_account` records that this is a
+#      per-employer condition read off the DE 2088, not a property of the year.
+#   2. The wage base is the UI taxable wage base, the same $7,000, tracked on
+#      the same wages. It is stored separately anyway so that a future
+#      divergence needs no code change.
+#
+# Unlike the UI rate, the ETT rate is set by statute and is NOT protestable:
+# source [1] page 77, "You may protest any item on the DE 2088 except
+# Employment Training Tax, which is specifically set by law."
+[ett]
+rate_ppm = 1000
+wage_base = "7000.00"
+max_tax = "7.00"
+applies_only_with_positive_reserve_account = true
+
+# ---------------------------------------------------------------------------
+# LOCAL INCOME TAX WITHHOLDING: NONE, ANYWHERE IN CALIFORNIA.
+# In particular none in San Francisco, whose payroll expense tax was repealed (2. below).
+# ---------------------------------------------------------------------------
+#
+# This section exists to record a NEGATIVE finding explicitly, because "no key"
+# is indistinguishable from "nobody looked". The answer for San Francisco is a
+# researched no, not an omission.
+#
+# 1. STATE PREEMPTION. Source [5], California Revenue and Taxation Code section
+#    17041.5, as amended by Stats. 1965, Ch. 1319:
+#
+#      "Notwithstanding any statute, ordinance, regulation, rule or decision to
+#      the contrary, no city, county, city and county, governmental subdivision,
+#      district, public and quasi-public corporation, municipal corporation,
+#      whether incorporated or not or whether chartered or not, shall levy or
+#      collect or cause to be levied or collected any tax upon the income, or
+#      any part thereof, of any person, resident or nonresident. This section
+#      shall not be construed so as to prohibit the levy or collection of any
+#      otherwise authorized license tax upon a business measured by or according
+#      to gross receipts."
+#
+#    "city and county" names San Francisco's own form of government. So the bar
+#    is general: no California locality can impose a personal income tax, and
+#    therefore none can impose the local wage withholding that such a tax would
+#    require. The second sentence is why San Francisco's business taxes are
+#    measured by gross receipts and payroll expense instead: those are taxes on
+#    the BUSINESS, expressly permitted, and they are outside the payroll
+#    withholding path entirely.
+#
+#    This is the structural reason California needs nothing analogous to
+#    [nyc] or [yonkers] in state-NY-2026.toml.
+#
+# 2. THE SAN FRANCISCO PAYROLL EXPENSE TAX WAS REPEALED, NOT ZEROED. Source [6],
+#    the Treasurer & Tax Collector's own page: "Proposition F was approved by
+#    San Francisco voters on November 3, 2020 and became effective January 1,
+#    2021. Proposition F eliminates the City's Payroll Expense Tax and gradually
+#    raises the Gross Receipts Tax rates across most industries ... Proposition F
+#    will complete the City's transition away from payroll taxes." Its overview
+#    list begins "Eliminates the Payroll Expense Tax (filed in 2022 for tax
+#    year 2021)". Article 12-A of the San Francisco Business and Tax Regulations
+#    Code is accordingly marked repealed, and the Treasurer's current "Taxes &
+#    Fees" index carries no Payroll Expense Tax entry.
+#
+#    The distinction matters for a roll-forward: a tax phased to a 0% rate could
+#    return by rate change alone, whereas a repealed article requires new
+#    legislation. Either way it was ALWAYS an employer tax measured by the
+#    employer's payroll expense, never an amount withheld from an employee, so
+#    even while it existed it never belonged in a withholding engine.
+#
+# 3. EVERY OTHER SAN FRANCISCO EMPLOYMENT-RELATED LEVY IS EMPLOYER-SIDE. The
+#    Gross Receipts Tax, the Administrative Office Tax (which IS measured by San
+#    Francisco payroll expense), the Homelessness Gross Receipts Tax, the
+#    Overpaid Executive Gross Receipts Tax, the Commercial Rents Tax and the
+#    annual Business Registration Fee are all taxes or fees on the business,
+#    filed on the Annual Business Tax Return. Proposition M (approved
+#    2024-11-05, operative 2025-01-01) restructured several of them; it created
+#    no employee withholding. Two further San Francisco obligations that look
+#    payroll-shaped are not deductions either: the Health Care Security
+#    Ordinance imposes an employer SPENDING requirement, and the Paid Parental
+#    Leave Ordinance imposes an employer SUPPLEMENTAL PAY obligation on top of
+#    California Paid Family Leave. None of these is withheld from wages, so none
+#    appears in this file. They are business-tax and employer-cost matters,
+#    outside a payroll withholding engine's scope.
+#
+# The single key below is the whole operative content of this section.
+[local]
+# Amount of local income tax to withhold from an employee working in San
+# Francisco, or anywhere else in California: none, and no local rate exists to
+# configure. A consumer must not look for one.
+employee_withholding = false
+
+# ---------------------------------------------------------------------------
+# FUTA CREDIT REDUCTION FOR CALIFORNIA.
+# Feeds `company.futa_credit_reduction_ppm` (see rachuba.example.toml).
+# ---------------------------------------------------------------------------
+#
+# ####################################################################
+# ##  THE 2026 FIGURE IS NOT DETERMINED YET. THIS FILE DOES NOT     ##
+# ##  CONTAIN ONE. `determined_ppm` IS DELIBERATELY ABSENT.         ##
+# ####################################################################
+#
+# HOW THE MECHANISM WORKS. Source [7]: a state with an outstanding Title XII
+# advance on January 1 of two or more consecutive years loses part of the 5.4%
+# credit against the 6.0% gross FUTA rate, "if all advances are not repaid
+# before November 10 of the taxable year". Employers in a state without a
+# further reduction pay 0.6% on the first $7,000; employers in a reduction state
+# pay 0.6% plus the reduction. The base reduction grows by 0.3 percentage points
+# for each additional consecutive January 1 with a balance, and after the third
+# and fifth such January 1 the state becomes exposed to two further add-ons: the
+# "2.7 add-on" (FUTA section 3302(c)(2)(B)) and the Benefit Cost Rate add-on
+# (FUTA section 3302(c)(2)).
+#
+# THREE PROPERTIES THAT MAKE THIS A REAL ACCOUNTING PROBLEM, NOT A LOOKUP:
+#
+#   1. IT IS RETROACTIVE TO THE WHOLE CALENDAR YEAR. The determination is made
+#      on November 10 but applies to every dollar of FUTA taxable wages paid
+#      since January 1. There is no prospective-only version.
+#   2. IT IS PAID WITH FORM 940, in January following the year. Source [9]
+#      describes exactly this lag for California: reductions "started occurring
+#      for tax year 2022, with the higher federal taxes due in January 2023".
+#   3. THEREFORE THE EMPLOYER SHOULD ACCRUE FOR IT MONTHLY rather than discover
+#      it in February. At the potential 2026 base of 1.5% the accrual is
+#      $7,000 * 0.015 = $105.00 per employee for the year; at the full potential
+#      total of 5.3% it would be $371.00. Accruing nothing and being right is
+#      luck, not a policy.
+#
+# WHAT IS ACTUALLY KNOWN, EACH FIGURE LABELLED BY ITS STATUS.
+[futa_credit_reduction]
+state = "CA"
+
+# DETERMINED, FINAL, HISTORICAL. Source [7], "Actual FUTA Credit Reductions
+# 2010-2025", and independently source [8], the instructions to Schedule A
+# (Form 940) for 2025: "Credit reduction states for 2025. The credit reduction
+# rate for California is 0.012 (1.2%)." Net FUTA for 2025 was therefore
+# 0.6% + 1.2% = 1.8% on the first $7,000, i.e. $126.00 per employee.
+#
+# Rows are [tax_year, credit_reduction_ppm]. TWO-ELEMENT ROWS, DELIBERATELY,
+# so they cannot be mistaken for the three-element [at_least, base_tax,
+# rate_ppm] bracket shape used above: the first element is a YEAR, not a money
+# threshold, and there is no rate to apply to an excess.
+#
+# Source [7] marks every California year from 2014 onward with its footnote 3,
+# "For this year the state received credit reduction add-on relief" -- that is,
+# the additional add-ons were waived and only the base reduction was assessed.
+# California's current run of consecutive January 1s began with tax year 2022
+# after a gap: source [7] also shows 0.3%/0.6%/0.9%/1.2% for 2011-2013 and
+# 1.2%-2.1% for 2014-2017 from the previous episode, then nothing for 2018-2021.
+determined = [
+  [2022,  3000],
+  [2023,  6000],
+  [2024,  9000],
+  [2025, 12000],
+]
+
+# NOT DETERMINED. The 2026 figure becomes final only on the test date below.
+determined_2026 = false
+test_date_2026 = "2026-11-10"
+
+# POTENTIAL, PRELIMINARY, NOT LAW. Source [7], "Potential 2026 Credit
+# Reductions", which states that the listed states "had a Title XII advance
+# balance on January 1, 2026" and are "potentially subject to a reduction in
+# FUTA credit on their IRS Form 940 for 2026, if the outstanding advance is not
+# repaid by November 10, 2026". Its California row reads:
+#
+#   Credit reduction due to outstanding advance ......... 0.015
+#   2026 estimated "2.7 add-on" ......................... 0
+#   2026 estimated "BCR add-on" ......................... 0.038
+#   2026 potential TOTAL credit reduction ............... 0.053
+#
+# Source [7] labels the add-on columns "a preliminary estimate based on
+# estimated wages and tax contributions for the third and fourth quarter of
+# 2025", and its footnote 6 notes that states may qualify for relief "through
+# avoidance, caps on reductions and fifth year waivers".
+#
+# WHICH OF THESE IS LIKELY. The 1.5% base is the mechanical continuation of the
+# 0.3%-per-year ladder from the 1.2% assessed for 2025 (source [7] historical
+# table; source [9] describes the same ladder). The 3.8% BCR add-on has been
+# WAIVED in every California year since 2014 -- that is precisely what source
+# [7]'s footnote 3 records against each of those years -- so the historically
+# consistent outcome is 1.5% and not 5.3%. THAT IS A PATTERN, NOT A
+# DETERMINATION. The BCR waiver must be requested by the state and granted; it
+# is not automatic, and a year in which it is not granted more than triples the
+# liability.
+#
+# REPAYMENT IS NOT REALISTICALLY IN PROSPECT FOR 2026, which is why the base
+# reduction is the live case rather than zero. Source [9], the EDD's own May
+# 2026 forecast: California's year-end federal loan balance "was $21.6 billion
+# for 2024 and $21.7 billion for 2025, and the balance is projected to be
+# $22.0 billion by the end of 2026 and $21.4 billion by the end of 2027".
+# California has paid interest every year since 2021, most recently $628.3
+# million on 2025-09-30, and source [9] states it "will continue to owe interest
+# until the loan is paid off completely".
+potential_2026_base_ppm = 15000
+potential_2026_two_point_seven_add_on_ppm = 0
+potential_2026_bcr_add_on_ppm = 38000
+potential_2026_total_ppm = 53000
+
+# WHAT A CONSUMER SHOULD DO. `company.futa_credit_reduction_ppm` in
+# rachuba.example.toml is an operator-set field and this file deliberately does
+# not supply a 2026 default for it. Until the November 10, 2026 determination is
+# published on source [7] and restated in the instructions to Schedule A
+# (Form 940) for 2026:
+#
+#   - to accrue on the historically consistent outcome, configure 15000 ppm
+#     (1.5%), giving a net FUTA rate of 0.6% + 1.5% = 2.1% and $147.00 per
+#     employee at the $7,000 base;
+#   - to accrue on the worst published case, configure 53000 ppm (5.3%), which
+#     leaves only 0.1% of the 5.4% credit, giving 6.0% - 0.1% = 5.9% net and
+#     $413.00 per employee;
+#   - configuring 0 is only correct if California repays before 2026-11-10, for
+#     which source [9] gives no support.
+#
+# In every case, replace the configured value with the DETERMINED rate once it
+# is published, and true up the accrual on the Form 940 filed in January 2027.
+recommended_accrual_ppm = 15000
+recommended_accrual_basis = "historically-consistent base reduction; NOT a determination"

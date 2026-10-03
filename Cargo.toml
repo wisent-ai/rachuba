@@ -1,0 +1,29 @@
+[package]
+name = "rachuba"
+version = "0.1.0"
+edition = "2021"
+description = "Single-employee US payroll engine: exact gross-to-net, deposit schedule, and filing line values"
+license = "UNLICENSED"
+# No test target is built until the operator approves one with
+# `tama tests approve`.
+autotests = false
+
+[dependencies]
+anyhow = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+[profile.release]
+lto = true
+strip = true
+
+[lib]
+name = "rachuba"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rachuba"
+path = "src/main.rs"

@@ -1,0 +1,195 @@
+# rachuba configuration.
+#
+# This file describes one payer and one employee. Copy it to `rachuba.toml`,
+# edit every value, and keep it in the company's private repository.
+#
+# It deliberately contains no Social Security number. Pay stubs need only the
+# last four digits, and the full number is entered directly into SSA Business
+# Services Online when the W-2 is filed.
+
+[company]
+legal_name = "Example Labs, Inc."
+ein = "12-3456789"
+address = "1 Example Street, San Francisco, CA 94103"
+# Two-letter postal code. Selects the tables/state-<CODE>-<year>/ folder.
+state = "CA"
+
+# Federal employment tax deposit schedule, set by the lookback period. An
+# employer whose lookback-period liability was $50,000 or less is a monthly
+# schedule depositor; above that, semiweekly. A brand new employer starts
+# monthly. See section 11 of Publication 15.
+deposit_schedule = "monthly"
+
+# State unemployment insurance rate from YOUR annual EDD rate notice, in
+# parts-per-million: 3.4% is 34000. Every employer is assigned an individual
+# rate, so this has no default and must be copied from the notice. California
+# is on Schedule F+ for 2026, assigned range 1.5% to 6.2%; a new employer
+# starts at 3.4%.
+sui_rate_ppm = 34000
+
+# FUTA credit reduction, in parts-per-million, for states that have not repaid
+# their federal unemployment loans.
+#
+# California has been a credit reduction state every year since 2022 and was
+# determined at 1.2% for 2025. The 2026 rate is NOT determined until the
+# 10 November 2026 test date and then applies retroactively to the whole year,
+# payable with Form 940 the following January. The state loan balance is
+# projected at $22.0 billion at the end of 2026, so repayment is not in
+# prospect. 15000 accrues 1.5%, the historically consistent outcome; the worst
+# published case is 5.3% if the add-on relief is not granted. Set it to 0 and
+# `rachuba run` will warn you that nothing is being accrued.
+futa_credit_reduction_ppm = 15000
+
+[employee]
+name = "Jane Founder"
+ssn_last4 = "6789"
+address = "2 Example Avenue, San Francisco, CA 94110"
+
+# One of: weekly, biweekly, semimonthly, monthly, quarterly, semiannually,
+# annually, daily.
+pay_frequency = "monthly"
+
+# Gross wages per pay period. $96,000 a year paid monthly is $8,000.
+gross_per_period = "8000.00"
+
+# Age attained during the calendar year. Drives the section 414(v) catch-up
+# ceiling. Omit the line entirely if no catch-up applies.
+# age_this_year = 41
+
+# Residency flags consumed by the state engine. California uses none, because
+# California law bars local income taxes outright. For New York the recognised
+# flags are "nyc_resident" and "yonkers_resident".
+state_flags = []
+
+# Regular withholding allowances on the state certificate: Form DE 4 line 1 in
+# California, Form IT-2104 in New York. A state concept; the federal Form W-4
+# has no allowances.
+state_allowances = 0
+
+# Additional allowances claimed for ESTIMATED DEDUCTIONS, Form DE 4 line 2.
+# A different quantity from the line above and never added to it: California
+# reads the two counts in different tables, and mixing them is the single most
+# common way to get California withholding wrong.
+state_estimated_allowances = 0
+
+# Flat extra state withholding per pay period requested on the state
+# certificate.
+state_additional_withholding = "0.00"
+
+# State withholding status: single, married, or head_of_household. Left unset,
+# it is derived from the federal filing status.
+#
+# Set it explicitly to "single" if you are married and your spouse also works,
+# or you hold a second job. California's "married" means married with ONE
+# employer and a non-working spouse, and using it otherwise under-withholds.
+# state_filing_status = "single"
+
+[employee.w4]
+# One of: single, married_filing_jointly, married_filing_separately,
+# head_of_household.
+filing_status = "single"
+
+# Step 2 checkbox: two jobs, or a working spouse. Raises withholding.
+step2_checkbox = false
+
+# Step 3, annual: dependent credits plus any other credits claimed.
+step3_credits = "0.00"
+
+# Step 4(a), annual: other income not subject to withholding.
+step4a_other_income = "0.00"
+
+# Step 4(b), annual: deductions beyond the standard deduction.
+step4b_deductions = "0.00"
+
+# Step 4(c), per pay period: extra withholding requested.
+step4c_extra_withholding = "0.00"
+
+[retirement_401k]
+# Elective deferrals. Each is either
+#   { none = {} }
+#   { percent = { ppm = 100000 } }        # 10% of gross
+#   { per_period = { amount = "2000.00" } }
+#
+# Pre-tax deferrals reduce wages subject to federal income tax withholding but
+# NOT wages subject to Social Security and Medicare. Designated Roth deferrals
+# reduce neither. The 2026 ceiling on the two combined is $24,500, plus catch-up
+# if age_this_year is 50 or over.
+pretax = { per_period = { amount = "1500.00" } }
+roth = { none = {} }
+
+# Employer contribution, as a share of this period's gross wages. Capped at 25%
+# of compensation for the year, and at the section 415(c) total of $72,000.
+# The company deducts it; in a year with a loss the deduction adds to the net
+# operating loss carried forward instead of lowering this year's tax.
+employer = { none = {} }
+
+# Prior-year Social Security wages. Above $150,000, SECURE 2.0 section 603
+# forces catch-up contributions to be designated Roth.
+prior_year_ss_wages = "0.00"
+
+# The employee's own federal return, read only by `rachuba return`. Every
+# amount is for the whole calendar year, the best figure known today. Leave
+# the section out and every other command works unchanged.
+[household]
+# One of: single, married_filing_jointly, married_filing_separately,
+# head_of_household.
+filing_status = "single"
+
+# A spouse's Form W-2 box 1 wages. Only a joint return carries them.
+spouse_wages = "0.00"
+
+# The spouse's Form W-2 box 5 Medicare wages for Additional Medicare Tax.
+# Set this from box 5 when spouse_wages is positive; box 1 can be lower after
+# pre-tax 401(k) deferrals.
+spouse_medicare_wages = "0.00"
+
+# Whether the spouse takes part in a workplace retirement plan, and the age
+# the spouse attains this year. Both decide the spouse's IRA limits.
+spouse_covered_by_plan = false
+# spouse_age_this_year = 38
+
+# Ordinary income that is neither wages nor investment income. Negative for a
+# business loss.
+other_income = "0.00"
+
+# Investment income. Interest and dividends that are not qualified are taxed
+# like wages; qualified dividends at the capital gains rates.
+interest_and_ordinary_dividends = "350.00"
+qualified_dividends = "600.00"
+
+# Net capital gains for the year, negative for a net loss. Short-term gains
+# are taxed like wages; long-term gains at 0%, 15% or 20%.
+short_term_capital_gains = "1200.00"
+long_term_capital_gains = "4000.00"
+
+# Adjustments to income from Schedule 1 Part II, such as a deductible IRA
+# contribution once it is made.
+adjustments = "0.00"
+# The portion of adjustments that IRA modified AGI adds back, including a
+# traditional IRA deduction. Set this when adjustments contain such amounts;
+# it cannot exceed adjustments. The IRA phase-outs use AGI plus this amount.
+ira_magi_addbacks = "0.00"
+
+# Itemized deductions, used when larger than the standard deduction.
+itemized_deductions = "0.00"
+
+# Boxes checked for age 65 or blindness: one of each per person on the return.
+aged_or_blind_boxes = 0
+
+# Nonrefundable credits, such as the child tax credit.
+credits = "0.00"
+
+# Federal income tax withheld outside this payroll: a spouse's employer, a
+# broker's backup withholding.
+other_withholding = "0.00"
+
+# Last year's Form 1040: total tax (line 24) and adjusted gross income (line
+# 11). Set both or neither. Without them only the 90% rule of the estimated
+# tax safe harbor is applied.
+prior_year_tax = "9800.00"
+prior_year_agi = "88000.00"
+
+# One block per Form 1040-ES payment made for this year.
+[[household.estimated_payment]]
+paid_on = "2026-04-15"
+amount = "500.00"

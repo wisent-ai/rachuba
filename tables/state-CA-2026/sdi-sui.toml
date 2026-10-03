@@ -1,0 +1,153 @@
+# ---------------------------------------------------------------------------
+# CALIFORNIA STATE DISABILITY INSURANCE (SDI). Employee contribution.
+# ---------------------------------------------------------------------------
+#
+# ###################################################################
+# ##  THERE IS NO SDI TAXABLE WAGE CEILING. NONE. DO NOT ADD ONE.  ##
+# ###################################################################
+#
+# Senate Bill 951 removed the taxable wage limit and the maximum withholding
+# effective January 1, 2024, and the removal is permanent, not a one-year
+# measure. Three independent 2026 EDD statements, all retrieved 2026-08-28:
+#
+#   - Source [1] page i, "Important Information", the first line of the guide:
+#     "Effective January 1, 2024, Senate Bill 951 removed the taxable wage limit
+#     and maximum withholdings for each employee subject to State Disability
+#     Insurance (SDI) contributions."
+#   - Source [1] page ii: "There is no SDI taxable wage limit beginning
+#     January 1, 2024."
+#   - Source [1] page 9, the four-tax summary table, row "Maximum Tax": the SDI
+#     column reads "No maximum." (UI in the same row reads "$434 per employee,
+#     per calendar year"; ETT reads "$7 per employee, per calendar year".)
+#   - Source [3], "SDI Rate": "The SDI withholding rate for 2026 is 1.3
+#     percent. Effective January 1, 2024, all wages are subject to SDI
+#     contributions."
+#
+# An engine that applies a stale cap (the last one was $153,164 for 2023, per
+# source [3]'s 2023 historical entry) under-withholds for the entire remainder
+# of the year for any employee who crosses it, and the employee owes the
+# shortfall at filing. `employee_rate_ppm` applies to every dollar of SDI
+# taxable wages, with no year-to-date test of any kind.
+#
+# The rate is set annually. Source [3] gives the recent series: 2023 0.9%,
+# 2024 1.1%, 2025 1.2%, 2026 1.3%. Source [1] page 93 gives the statutory band:
+# "The SDI tax rate may be adjusted annually to not more than 1.5 percent (.015)
+# or less than 0.1 percent (.001) depending on the balance in the Disability
+# Fund." A configured rate outside that band is a data-entry error.
+#
+# ####################################################################
+# ##  CALIFORNIA PAID FAMILY LEAVE IS NOT A SEPARATE DEDUCTION.     ##
+# ##  IT IS FUNDED THROUGH SDI. THERE IS NO [pfl] SECTION HERE,     ##
+# ##  AND ADDING ONE WOULD DOUBLE-DEDUCT.                           ##
+# ####################################################################
+#
+# Source [1] page ii: "The 2026 SDI withholding rate is 1.3 percent (.013),
+# which provides for both State Disability Insurance (SDI) and Paid Family
+# Leave (PFL) benefits." Source [1] page 93: "The SDI program, which includes
+# DI and PFL, is funded through mandatory employee payroll deductions for most
+# California workers."
+#
+# This differs from New York, where state-NY-2026.toml carries a [pfl] section
+# with its own rate and its own annual cap because New York DBL and New York PFL
+# are two separate employee contributions. California has ONE deduction, shown
+# on the pay stub as "CASDI". Do not port the New York shape across.
+[sdi]
+employee_rate_ppm = 13000
+statutory_min_rate_ppm = 1000
+statutory_max_rate_ppm = 15000
+
+# Employer contribution: none. SDI is entirely employee-funded (source [1]
+# page 93, "funded through mandatory employee payroll deductions"). Recorded
+# as an explicit zero rather than an absent key so that a consumer summing
+# employer-side taxes cannot silently omit a rate it expected to find.
+employer_rate_ppm = 0
+
+# Coverage floor, source [1] page 93: "California law requires employers to
+# provide coverage for employees with payroll over $100 in a calendar quarter."
+# This is a COVERAGE test on the employer, not a per-payroll exemption and not
+# a deduction. It does not reduce any employee's contribution.
+coverage_quarterly_payroll_threshold = "100.00"
+
+# BENEFIT FIGURES. NOT INPUTS TO THE PAYROLL DEDUCTION.
+#
+# Recorded the way state-NY-2026.toml records `nysaww`: for reconciliation and
+# for employee-facing display only. NOTHING in the withholding arithmetic reads
+# these. In particular `max_weekly_benefit` is NOT a contribution cap, and
+# because SDI has no wage ceiling it cannot be turned into one; treating it as
+# a cap would under-withhold every high earner.
+#
+# Source [4], DE 2588 Rev. 23 (2-26), "for claims beginning on or after
+# January 1, 2026": the maximum weekly benefit amount is $1,765, reached at
+# high-quarter wages of $32,760.01 and higher. Source [4]'s next band down,
+# $32,667.15 to $32,760.00, pays $1,760 to $1,764.
+#
+# `ui_max_weekly_benefit` is the unrelated Unemployment Insurance maximum,
+# source [1] page ii: "The UI maximum weekly benefit amount is $450." Kept here
+# only so the two are never confused; UI benefits are employer-funded.
+max_weekly_benefit = "1765.00"
+max_weekly_benefit_high_quarter_threshold = "32760.01"
+ui_max_weekly_benefit = "450.00"
+
+# ---------------------------------------------------------------------------
+# CALIFORNIA UNEMPLOYMENT INSURANCE (UI / SUI). Employer-only.
+# ---------------------------------------------------------------------------
+#
+# THE RATE BELOW IS A PLACEHOLDER FOR AN EMPLOYER THAT HAS NO RATE NOTICE YET.
+# An employer's actual UI contribution rate is assigned individually by EDD from
+# that employer's own reserve account and experience rating, and is mailed each
+# December on the Notice of Contribution Rates and Statement of UI Reserve
+# Account (DE 2088) (source [1] page 77: "Each December, EDD mails the ...
+# DE 2088. The notice contains your tax rates and wage limits for the upcoming
+# year."). THE RATE THAT APPLIES TO THIS EMPLOYER MUST BE READ FROM ITS OWN
+# DE 2088 AND MUST OVERRIDE `new_employer_rate_ppm` IN CONFIGURATION.
+#
+# A configured value outside `assigned_rate_min_ppm`..`assigned_rate_max_ppm` is
+# a data-entry error, not a valid rate -- with one documented exception, below.
+[sui]
+# Source [1] page ii: "The 2026 taxable wage limit is $7,000 per employee."
+# Also source [1] page 8 and source [3]. California's UI wage base is fixed in
+# statute at $7,000 and is not indexed, unlike New York's, which is recomputed
+# annually.
+wage_base = "7000.00"
+
+# Source [1] page ii: "The UI tax rate for new employers is 3.4 percent (.034)
+# for a period of two to three years." Source [1] page 77 adds that the exact
+# duration "depend[s] on when the employer meets the criteria under section
+# 982(b) of the California Unemployment Insurance Code (CUIC)". After that
+# period the rate comes from the employer's experience rating.
+new_employer_rate_ppm = 34000
+
+# Source [3], "UI Rate": "The UI rate schedule for 2026 is Schedule F+. This is
+# Schedule F, plus a 15 percent emergency surcharge, rounded to the nearest
+# tenth. Schedule F+ provides for UI contribution rates from 1.5 percent to
+# 6.2 percent." Source [1] page 8 states the same band: the rate "could increase
+# to a maximum of 6.2 percent (.062) or decrease to a minimum of 1.5 percent
+# (0.015) based on an employer's experience rating and the balance in the UI
+# Fund."
+#
+# `rate_schedule` is recorded because the band is a property OF the schedule,
+# not of the year: source [1] page 77 explains that EDD first picks one of seven
+# statutory schedules (AA through F) and then assigns every employer a rate from
+# that same schedule. Source [9] states California has been on Schedule F+ since
+# 2004 and projects it "will continue on this schedule throughout the forecast
+# period and beyond". If a future EDD announcement names a different schedule,
+# both bounds change and must be re-read.
+assigned_rate_min_ppm = 15000
+assigned_rate_max_ppm = 62000
+rate_schedule = "F+"
+
+# Source [1] page 9, "Maximum Tax" row: "$434 per employee, per calendar year.
+# (The amount has been calculated at the highest UI tax rate of 6.2 percent
+# [$7,000 x .062].)" Recorded as a cross-check on the band, not as a cap to
+# apply: 7000.00 * 62000 ppm = 434.00 exactly.
+max_tax_at_highest_rate = "434.00"
+
+# THE ONE DOCUMENTED WAY TO EXCEED assigned_rate_max_ppm. Source [3], "UI Rate",
+# Exception: "Employers subject to section 977(c) of the CUIC must pay at the
+# highest rate provided by law plus an additional 2 percent". This is the SUTA
+# dumping penalty (AB 664). It is not experience rating and it is not in the
+# 1.5-6.2 band, so a validator must allow this exact value. 6.2 + 2.0 = 8.2
+# percent. Source [1] page 9 flags the same section 977(c) exception against
+# both the UI and ETT maximum-tax figures.
+suta_dumping_penalty_rate_ppm = 82000
+

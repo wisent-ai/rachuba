@@ -1,0 +1,134 @@
+# Federal payroll tax parameters for calendar year 2026.
+#
+# Withholding schedules are transcribed from the "2026 Percentage Method Tables
+# for Automated Payroll Systems", page 12 of:
+#
+#   IRS Publication 15-T (2026), Federal Income Tax Withholding Methods,
+#   Catalog Number 32112B, revised 3 December 2025.
+#   https://www.irs.gov/pub/irs-pdf/p15t.pdf
+#
+# Each bracket row is [at_least, base_tax, rate_ppm]. The upper bound of a
+# bracket is the `at_least` of the following row; the final row is unbounded.
+# `base_tax` is column C ("the tentative amount to withhold") and `rate_ppm` is
+# column D expressed in parts per million, so 22% is 220000.
+#
+# To roll this crate to a new tax year: copy this file to federal-<year>.toml,
+# replace the numbers from that year's Publication 15-T and the Social Security
+# Administration wage base announcement, and update `year`. No code changes.
+
+year = 2026
+source = "IRS Publication 15-T (2026), Cat. No. 32112B, rev. 2025-12-03, page 12"
+
+[withholding]
+# Worksheet 1A line 1g: added to the Step 4(b) amount when the Step 2 checkbox
+# is NOT checked, then subtracted from annualized wages.
+standard_deduction_mfj = "12900.00"
+standard_deduction_other = "8600.00"
+# Worksheet 1A line 1k: value of one allowance on a 2019-or-earlier Form W-4.
+allowance_value = "4300.00"
+
+# STANDARD Withholding Rate Schedules.
+# Used when the Form W-4 is from 2019 or earlier, or is from 2020 or later and
+# the Step 2 checkbox is NOT checked.
+[withholding.standard]
+married_filing_jointly = [
+  [      "0.00",      "0.00",      0],
+  [  "19300.00",      "0.00", 100000],
+  [  "44100.00",   "2480.00", 120000],
+  [ "120100.00",  "11600.00", 220000],
+  [ "230700.00",  "35932.00", 240000],
+  [ "422850.00",  "82048.00", 320000],
+  [ "531750.00", "116896.00", 350000],
+  [ "788000.00", "206583.50", 370000],
+]
+single_or_married_filing_separately = [
+  [      "0.00",      "0.00",      0],
+  [   "7500.00",      "0.00", 100000],
+  [  "19900.00",   "1240.00", 120000],
+  [  "57900.00",   "5800.00", 220000],
+  [ "113200.00",  "17966.00", 240000],
+  [ "209275.00",  "41024.00", 320000],
+  [ "263725.00",  "58448.00", 350000],
+  [ "648100.00", "192979.25", 370000],
+]
+head_of_household = [
+  [      "0.00",      "0.00",      0],
+  [  "15550.00",      "0.00", 100000],
+  [  "33250.00",   "1770.00", 120000],
+  [  "83000.00",   "7740.00", 220000],
+  [ "121250.00",  "16155.00", 240000],
+  [ "217300.00",  "39207.00", 320000],
+  [ "271750.00",  "56631.00", 350000],
+  [ "656150.00", "191171.00", 370000],
+]
+
+# Form W-4, Step 2, Checkbox, Withholding Rate Schedules.
+# Used when the Form W-4 is from 2020 or later and the Step 2 box IS checked.
+[withholding.step2_checked]
+married_filing_jointly = [
+  [      "0.00",      "0.00",      0],
+  [  "16100.00",      "0.00", 100000],
+  [  "28500.00",   "1240.00", 120000],
+  [  "66500.00",   "5800.00", 220000],
+  [ "121800.00",  "17966.00", 240000],
+  [ "217875.00",  "41024.00", 320000],
+  [ "272325.00",  "58448.00", 350000],
+  [ "400450.00", "103291.75", 370000],
+]
+single_or_married_filing_separately = [
+  [      "0.00",      "0.00",      0],
+  [   "8050.00",      "0.00", 100000],
+  [  "14250.00",    "620.00", 120000],
+  [  "33250.00",   "2900.00", 220000],
+  [  "60900.00",   "8983.00", 240000],
+  [ "108938.00",  "20512.00", 320000],
+  [ "136163.00",  "29224.00", 350000],
+  [ "328350.00",  "96489.63", 370000],
+]
+head_of_household = [
+  [      "0.00",      "0.00",      0],
+  [  "12075.00",      "0.00", 100000],
+  [  "20925.00",    "885.00", 120000],
+  [  "45800.00",   "3870.00", 220000],
+  [  "64925.00",   "8077.50", 240000],
+  [ "112950.00",  "19603.50", 320000],
+  [ "140175.00",  "28315.50", 350000],
+  [ "332375.00",  "95585.50", 370000],
+]
+
+# Social Security (OASDI). Wage base per SSA announcement for 2026.
+[social_security]
+employee_rate_ppm = 62000
+employer_rate_ppm = 62000
+wage_base = "184500.00"
+
+# Medicare (HI). No wage base. The Additional Medicare Tax is employee-only:
+# the employer does not match it. Employers withhold it on wages above the
+# threshold regardless of the employee's filing status.
+[medicare]
+employee_rate_ppm = 14500
+employer_rate_ppm = 14500
+additional_rate_ppm = 9000
+additional_threshold = "200000.00"
+
+# Federal Unemployment Tax Act. Employer-only.
+# 6.0% gross less the 5.4% credit for timely state unemployment payments.
+[futa]
+gross_rate_ppm = 60000
+state_credit_ppm = 54000
+wage_base = "7000.00"
+# A quarter's accumulated liability below this is carried forward instead of
+# deposited. 26 CFR 31.6302(c)-3.
+deposit_threshold = "500.00"
+
+# Section 402(g) elective deferral limit, section 414(v) catch-up amounts, and
+# the section 415(c) annual additions cap.
+[retirement]
+elective_deferral_limit = "24500.00"
+catch_up_50_to_59_or_64_plus = "8000.00"
+catch_up_60_to_63 = "11250.00"
+annual_additions_limit = "72000.00"
+compensation_limit = "360000.00"
+# Prior-year Social Security wages above this force catch-up contributions to
+# be Roth. SECURE 2.0 section 603, effective 2026.
+roth_catch_up_wage_threshold = "150000.00"

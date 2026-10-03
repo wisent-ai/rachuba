@@ -1,0 +1,189 @@
+# California payroll tax parameters for calendar year 2026.
+#
+# INCOME TAX WITHHOLDING SOURCES
+#
+#   [1] DE 44 Rev. 52 (4-26), California Employer's Guide, Employment
+#       Development Department, 2026 edition, 132 pages.
+#       https://edd.ca.gov/siteassets/files/pdf_pub_ctr/de44.pdf
+#         - page ii: "2026 Payroll Tax Rates, Taxable Wage Limits, and Maximum
+#                    Benefit Amounts" summary
+#         - page  8: "Who Pays It?" for UI, ETT and SDI
+#         - page  9: rate and "Maximum Tax" summary table, all four taxes
+#         - page 18: "How to Withhold PIT on Supplemental Wages", flat rates
+#         - page 43: Method B narrative, Steps 1-5, Examples A and B
+#         - page 44: Examples C and D
+#         - page 45: Examples E and F (the annualized variant)
+#         - page 46: Method B Table 1 (low income exemption), Table 2
+#                    (estimated deduction)
+#         - page 47: Method B Table 3 (standard deduction), Table 4 (exemption
+#                    allowance)
+#         - page 48: Method B Tables 5-7 (annual), Tables 8-10 (daily/misc)
+#         - page 49: Tables 11-13 (quarterly), Tables 14-16 (semi-annual)
+#         - page 50: Tables 17-19 (semi-monthly), Tables 20-22 (monthly)
+#         - page 51: Tables 23-25 (weekly), Tables 26-28 (bi-weekly)
+#         - page 77: UI rate schedules AA-F, new employer rate, DE 2088 notice
+#         - page 93: statutory band for the SDI rate
+#
+#   [2] "California Withholding Schedules for 2026" / "2026 Withholding
+#       Schedules-Method B (INTERNET)", Exact Calculation Method, EDD, 10 pages.
+#       This is the standalone edition of the same schedules that DE 44 carries
+#       as its withholding-schedules section.
+#       https://edd.ca.gov/siteassets/files/pdf_pub_ctr/26methb.pdf
+#         - page  2: Method B narrative, Steps 1-5, Examples A and B
+#         - page  3: Examples C and D
+#         - page  4: Examples E and F
+#         - page  5: Table 1, Table 2
+#         - page  6: Table 3, Table 4
+#         - pages 7-10: Tables 5-28
+#
+#       EVERY ONE OF THE 240 TAX-RATE ROWS BELOW WAS TRANSCRIBED FROM BOTH [1]
+#       AND [2] INDEPENDENTLY AND THE TWO TRANSCRIPTIONS COMPARED. They agree
+#       row for row, field for field. Tables 1 through 4 were likewise read
+#       from both. Do not update one source and not the other.
+#
+#   [3] EDD, "Contribution Rates, Withholding Schedules, and Meals and Lodging
+#       Values", retrieved 2026-08-28. Names the 2026 UI rate schedule and
+#       repeats the 2026 UI, ETT and SDI rates.
+#       https://edd.ca.gov/en/payroll_taxes/rates_and_withholding/
+#
+# NON-INCOME-TAX SOURCES
+#
+#   [4] DE 2588 Rev. 23 (2-26), Disability Insurance and Paid Family Leave
+#       Weekly Benefit Amounts, EDD, revision 2-26, "for claims beginning on or
+#       after January 1, 2026".
+#       https://edd.ca.gov/siteassets/files/pdf_pub_ctr/de2588.pdf
+#
+#   [5] California Revenue and Taxation Code section 17041.5, as amended by
+#       Stats. 1965, Ch. 1319. Prohibits every California local government from
+#       levying a tax on income.
+#       https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=RTC&sectionNum=17041.5
+#
+#   [6] City and County of San Francisco, Office of the Treasurer & Tax
+#       Collector, "Prop F (2020): Business Tax Overhaul", published and last
+#       modified 2021-04-14, retrieved 2026-08-28.
+#       https://sftreasurer.org/business/taxes-fees/prop-f-2020-business-tax-overhaul
+#
+#   [7] U.S. Department of Labor, Employment and Training Administration,
+#       "FUTA Credit Reductions", page updated 2026-08-28, with its two linked
+#       determinations:
+#         - "Actual FUTA Credit Reductions 2010-2025"
+#           https://oui.doleta.gov/unemploy/docs/reduced_credit_states_2010-2025.xlsx
+#         - "Potential 2026 Credit Reductions"
+#           https://oui.doleta.gov/unemploy/docs/potential_credit_states_2026.xlsx
+#       https://oui.doleta.gov/unemploy/futa_credit.asp
+#
+#   [8] IRS Schedule A (Form 940) for 2025, Multi-State Employer and Credit
+#       Reduction Information, Cat. No. 16997C, created 2025-11-12, and its
+#       instructions.
+#       https://www.irs.gov/pub/irs-prior/f940sa--2025.pdf
+#
+#   [9] EDD, "May 2026 Unemployment Insurance (UI) Fund Forecast", May 2026.
+#       https://edd.ca.gov/siteassets/files/unemployment/pdf/2026-may-ui-fund-forecast.pdf
+#
+# CONVENTIONS
+#
+# Bracket rows are [at_least, base_tax, rate_ppm], as in federal-2026.toml and
+# state-NY-2026.toml. The upper bound of a bracket is the `at_least` of the
+# following row; the final row is unbounded. Money is a decimal string; rates
+# are integer parts per million, so 10.230% is 102300.
+#
+# BOUNDARY SEMANTICS. California prints its columns as "If The Taxable Income
+# Is Over" and "But The Taxable Income Is Not Over", so the publication's lower
+# bound is EXCLUSIVE. The crate's `at_least` is INCLUSIVE. The two agree
+# because the printed thresholds are whole dollars and the third printed column
+# ("Of the Amount Over") equals the first in every row: for a taxable income
+# exactly equal to a threshold T, the publication's row is the one whose "Over"
+# is the previous threshold, and it yields
+#     base_tax(prev) + rate(prev) * (T - prev)
+# which the published base_tax column makes equal to base_tax(T) + 0, i.e. what
+# an inclusive `at_least = T` lookup produces. This identity was checked for all
+# 240 rows: consecutive rows close to within half a cent everywhere, so the two
+# readings never differ by more than the rounding of the printed base_tax. See
+# local://ca-withholding-algorithm.md section 4 for the full argument.
+#
+# The third printed column equalling the first was verified row by row and is
+# asserted, not assumed. Do not carry that assumption into a future revision
+# without rechecking.
+#
+# WHY ALL 24 TAX RATE TABLES ARE STORED VERBATIM. Unlike New York, California
+# prints a complete tax rate table for every payroll period (8) and every
+# filing status (3). They are NOT derivable from the annual schedule by a single
+# rounding rule: of the 189 non-zero per-period thresholds, 57 differ from
+# round(annual / periods_per_year). Examples: weekly row 9 is printed 14,288
+# where 742,953/52 = 14,287.558; bi-weekly row 9 is printed 28,576 where
+# 742,953/26 = 28,575.115; semi-annual row 9 is printed 371,476 where
+# 742,953/2 = 371,476.5 (rounded DOWN, against the half-up rounding used
+# elsewhere). Storing the printed tables is the only correct construction, and
+# it is also why this file has no `period_threshold_quantum` analogue.
+#
+# NON-STANDARD ROW SHAPES ARE DELIBERATE. As state-NY-2026.toml does for its
+# Method III two-element rows, this file uses a different shape where the
+# publication's data is not a bracket schedule:
+#   - `[pit.estimated_deduction]` and `[pit.exemption_allowance]` are TEN-ELEMENT
+#     arrays of money strings indexed by allowance count 1..10, not bracket
+#     rows. They are lookup tables keyed by a small integer, and there is no
+#     rate and no "excess over" quantity anywhere in them. Handing either to a
+#     bracket evaluator is a bug.
+#   - `[pit.low_income_exemption]` and `[pit.standard_deduction]` are scalar
+#     money values keyed by payroll period and by a COLUMN name that is not a
+#     filing status (see below).
+#
+# THE FOUR-COLUMN TABLES ARE NOT KEYED BY FILING STATUS. Tables 1 and 3 print
+# four columns, but California has only three tax rate schedules. The married
+# column splits on the ALLOWANCE COUNT: a married employee claiming '0' or '1'
+# regular allowance takes the same amount as a single employee, and one claiming
+# '2' or more takes the doubled amount. The four printed columns are stored
+# under their printed names so this file can be diffed against [1] page 46 and
+# page 47 column by column; the selection rule lives in
+# local://ca-withholding-algorithm.md section 3. Selecting the low income
+# exemption or standard deduction by filing status alone is the single most
+# common way to get California wrong.
+#
+# RATE LADDER CROSS-CHECK. All ten rates are identical in all 24 tables:
+# 1.100, 2.200, 4.400, 6.600, 8.800, 10.230, 11.330, 12.430, 13.530, 14.630
+# percent. Each is exactly 1.1 times a California statutory personal income tax
+# marginal rate (1.0, 2.0, 4.0, 6.0, 8.0, 9.3, 10.3, 11.3, 12.3, 13.3 percent),
+# and the top two rates carry the 1 percent Mental Health Services Tax, whose
+# $1,000,000 breakpoint appears in all three ANNUAL schedules. That identity is
+# recorded as a TRANSCRIPTION CHECK ONLY. Neither [1] nor [2] states the 1.1
+# factor, so no code may compute a rate from it; read the rates from this file.
+#
+# See local://ca-withholding-algorithm.md for the full step-by-step Method B
+# procedure: table ordering, the low income exemption short circuit, where (and
+# whether) wages are annualized, every rounding site, and how the DE 4
+# allowance count enters.
+#
+# To roll this crate to a new tax year: copy this file to state-CA-<year>.toml,
+# replace the numbers from that year's DE 44 and Method B schedules, the EDD
+# contribution-rate page, DE 2588, the DOL credit reduction determination and
+# the IRS Schedule A (Form 940) for that year, re-run the two-source comparison,
+# and update `year`. No code changes.
+
+year = 2026
+source = "DE 44 Rev. 52 (4-26), California Employer's Guide, 2026 edition; \"California Withholding Schedules for 2026 - Method B, Exact Calculation Method\" (2026 Withholding Schedules-Method B (INTERNET)), the same schedules published standalone; EDD \"Contribution Rates, Withholding Schedules, and Meals and Lodging Values\" retrieved 2026-08-28; DE 2588 Rev. 23 (2-26); Cal. Rev. & Tax. Code sec. 17041.5 (Stats. 1965, Ch. 1319); SF Treasurer & Tax Collector \"Prop F (2020): Business Tax Overhaul\" rev. 2021-04-14; U.S. DOL ETA FUTA Credit Reductions determination and potential-2026 table, page updated 2026-08-28; IRS Schedule A (Form 940) for 2025, Cat. No. 16997C, created 2025-11-12; EDD May 2026 UI Fund Forecast"
+
+# Number of payroll periods in a year, for each period California prints.
+#
+# These are not assumed: they are CONFIRMED by the publication's own arithmetic.
+# Every one of the 80 printed cells of Table 2 equals round-half-up of
+# n * $1,000 / periods_per_year, and every one of the 80 printed cells of
+# Table 4 equals round-half-up of n * $168.30 / periods_per_year, for
+# n = 1..10 across all eight periods, with exactly these divisors. Checked
+# against [1] pages 46-47.
+#
+# "daily" is the publication's "Daily / Miscellaneous" payroll period; 260 is
+# the divisor its printed column implies (e.g. Table 2 row 1 prints $4 and
+# 1000/260 = 3.846, Table 4 row 1 prints $0.65 and 168.30/260 = 0.647).
+#
+# California prints a full tax rate table for all eight of these periods, so
+# unlike New York there is no period here that lacks a printed schedule.
+[payroll_periods]
+daily = 260
+weekly = 52
+biweekly = 26
+semimonthly = 24
+monthly = 12
+quarterly = 4
+semiannual = 2
+annual = 1
+

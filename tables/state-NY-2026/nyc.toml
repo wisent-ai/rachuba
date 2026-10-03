@@ -1,0 +1,123 @@
+# ---------------------------------------------------------------------------
+# NEW YORK CITY resident personal income tax withholding.
+# ---------------------------------------------------------------------------
+#
+# Applies only to employees who are residents of New York City. There is no
+# New York City nonresident earnings tax; it was repealed effective 1999, and
+# source [2] accordingly contains only resident tables.
+
+[nyc]
+# Source [2] page 3. Optional flat rate for separately paid supplemental
+# wages: 4.25%. This equals the top bracket rate, since the New York City
+# schedule tops out at 4.25%.
+supplemental_rate_ppm = 42500
+
+# Source [2] page 24, Table D, annual payroll row. OPTIONAL, NOT USED, AND
+# STALE. Transcribed as printed for completeness only.
+#
+# The printed $3,050.00 is 4050.00 - 1000.00, and the page 24 footnote states
+# it is "based on the 2017 federal exemption amount of $4,050", instructing the
+# employer to recompute by "subtracting $1,000 from the current federal
+# exemption amount". The federal personal exemption has been $0 since the Tax
+# Cuts and Jobs Act, so the footnote's own restatement rule yields a negative
+# adjustment and the table is unusable as printed. Do not consume this value;
+# track New York allowances directly and use [nyc.exemption_allowance].
+federal_exemption_adjustment_annual_as_printed = "3050.00"
+
+# Source [2] page 24, Table B "Deduction allowance". Note that the New York
+# City deduction allowance differs from the state's, so a New York City
+# resident needs two separate net-wage figures.
+[nyc.deduction_allowance]
+daily       = { single =   "19.25", married =   "21.15" }
+weekly      = { single =   "96.15", married =  "105.75" }
+biweekly    = { single =  "192.30", married =  "211.50" }
+semimonthly = { single =  "208.35", married =  "229.15" }
+monthly     = { single =  "416.70", married =  "458.30" }
+annual      = { single = "5000.00", married = "5500.00" }
+
+# Source [2] page 24, Table C "Exemption allowance". Identical to the state's
+# Table C, $1,000 per allowance annually, but transcribed separately because
+# nothing in the publications guarantees it stays that way.
+[nyc.exemption_allowance]
+daily       =    "3.85"
+weekly      =   "19.25"
+biweekly    =   "38.50"
+semimonthly =   "41.65"
+monthly     =   "83.30"
+annual      = "1000.00"
+
+# Rounding quantum for a derived per-period bracket threshold.
+#
+# New York City prints daily thresholds to the nearest HALF DOLLAR, not to the
+# nearest dollar as the state does: source [2] pages 25 and 26 print $31.00,
+# $33.50, $57.50, $96.00, $231.00 where the unrounded quotients are 30.769,
+# 33.462, 57.692, 96.154 and 230.769. All other New York City periods print
+# whole dollars.
+[nyc.period_threshold_quantum]
+daily       = "0.50"
+weekly      = "1.00"
+biweekly    = "1.00"
+semimonthly = "1.00"
+monthly     = "1.00"
+quarterly   = "1.00"
+semiannual  = "1.00"
+annual      = "1.00"
+
+# Method II Exact Calculation Method, "Annual Tax Rate Schedule".
+# Source [2] page 25 (single) and page 26 (married).
+#
+# The single and married New York City schedules are IDENTICAL, row for row,
+# in the 1/26 revision; both were transcribed independently and compared. Only
+# the deduction allowance differs by marital status. They are stored as two
+# keys anyway so that a consumer selects by filing status uniformly with
+# [nys.brackets], and so that a future revision splitting them needs no code
+# change.
+#
+# The final row is genuinely unbounded: New York City has no Method III
+# top-income-rates regime and no separate recapture or adjustment table. The
+# 2026 New York City rates are unchanged from 2025; source [2] page 3 lists no
+# rate change.
+[nyc.brackets]
+single = [
+  [    "0.00",    "0.00", 20500],
+  [ "8000.00",  "164.00", 28000],
+  [ "8700.00",  "184.00", 32500],
+  ["15000.00",  "388.00", 39500],
+  ["25000.00",  "783.00", 41500],
+  ["60000.00", "2236.00", 42500],
+]
+married = [
+  [    "0.00",    "0.00", 20500],
+  [ "8000.00",  "164.00", 28000],
+  [ "8700.00",  "184.00", 32500],
+  ["15000.00",  "388.00", 39500],
+  ["25000.00",  "783.00", 41500],
+  ["60000.00", "2236.00", 42500],
+]
+
+# The only two printed values in any of the three publications that the
+# derivation rule does not reproduce. Both are in source [2] and both are
+# inconsistent with the rounding the same publication applies elsewhere, so
+# they are recorded as explicit per-row overrides rather than by weakening the
+# rule. `row` is 1-based into [nyc.brackets] and applies to both filing
+# statuses, since the two New York City schedules are identical.
+#
+# An override replaces only the named field of the derived row.
+
+# 8700 / 26 = 334.6154, which rounds to 335, but pages 25 and 26 print 334 for
+# biweekly line 3 column 1 (and column 3). Effect is confined to net biweekly
+# wages in [334, 335): at most 335 * 0.0045 = about 1.5 cents.
+[[nyc.period_table_overrides]]
+period = "biweekly"
+row = 3
+at_least = "334.00"
+
+# 783 / 24 = 32.625, which rounds half-to-even to 32.62, but pages 25 and 26
+# print 32.63 for semimonthly line 5 column 5. Worth an override rather than a
+# tolerance: it is a flat 1 cent on every semimonthly paycheck whose net wages
+# land in [1042, 2500), which is the ordinary range for this crate's use.
+[[nyc.period_table_overrides]]
+period = "semimonthly"
+row = 5
+base_tax = "32.63"
+

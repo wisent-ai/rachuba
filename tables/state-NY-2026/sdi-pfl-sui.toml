@@ -1,0 +1,114 @@
+# ---------------------------------------------------------------------------
+# NEW YORK STATE DISABILITY BENEFITS (DBL, commonly "NY SDI").
+# Employee contribution.
+# ---------------------------------------------------------------------------
+#
+# Source [4], quoting Workers' Compensation Law sec. 209: "An employee's
+# contribution is computed at the rate of one-half of one percent of their
+# wages, but no more than sixty cents a week."
+#
+# Both figures are CEILINGS on what the employer may collect, not a tax the
+# employer must collect: source [4] states the employer "is allowed, but not
+# required, to collect contributions from its employees to offset the cost of
+# providing disability and Paid Family Leave benefits".
+#
+# The cap is stated PER WEEK, not per payroll period and not per year. For a
+# non-weekly payroll period the cap for that period is the weekly cap times the
+# number of weeks the period covers; see local://ny-withholding-algorithm.md.
+#
+# The rate and cap are fixed in statute and are not indexed, so they carry no
+# year-specific revision date. A Board-accepted plan may require a larger
+# employee contribution, but only by agreement and only where the contribution
+# is reasonably related to the value of the benefits (source [4]); such a plan
+# is outside these figures.
+[sdi]
+employee_rate_ppm = 5000
+employee_weekly_cap = "0.60"
+
+# ---------------------------------------------------------------------------
+# NEW YORK PAID FAMILY LEAVE (PFL). Employee contribution.
+# ---------------------------------------------------------------------------
+#
+# Source [5]: "For 2026, employees will contribute 0.432 % of their gross wages
+# per pay period, with a maximum annual contribution of $411.91." The rate is
+# set annually by the NYS Department of Financial Services to match the cost of
+# coverage (source [4]).
+#
+# The cap is ANNUAL and per covered employer (source [5]: "The maximum employee
+# contribution for each covered employer in 2026 is $411.91"), so it is applied
+# against year-to-date PFL withheld, not per payroll period. There is no
+# separate taxable wage base: the cap alone bounds the contribution.
+#
+# `nysaww` is the New York State Average Weekly Wage for the 2026 program year.
+# It is not an input to the contribution arithmetic; it is recorded because it
+# is what makes the annual cap self-consistent, and because the 2026 maximum
+# weekly benefit is 67% of it. Both identities were checked:
+#   1833.63 * 52 * 0.00432 = 411.9058... -> 411.91   (the annual cap)
+#   1833.63 * 0.67         = 1228.53...  -> 1228.53  (max weekly benefit)
+# Employees earning less than the NYSAWW contribute less than the cap, in
+# proportion to actual wages (source [5]).
+[pfl]
+employee_rate_ppm = 4320
+employee_annual_cap = "411.91"
+nysaww = "1833.63"
+max_weekly_benefit = "1228.53"
+benefit_rate_ppm = 670000
+
+# ---------------------------------------------------------------------------
+# NEW YORK STATE UNEMPLOYMENT INSURANCE (SUI). Employer-only.
+# ---------------------------------------------------------------------------
+#
+# THE RATE BELOW IS A PLACEHOLDER FOR AN EMPLOYER THAT HAS NO RATE NOTICE YET.
+# An employer's actual contribution rate is assigned individually by the New
+# York State Department of Labor from that employer's own experience-rating
+# account, and DOL mails the rate notice starting mid-February each year
+# (source [7]). The rate that applies to this employer MUST be read from that
+# notice and MUST override `new_employer_total_rate_ppm` in configuration.
+# For 2026 the assigned total rate ranges from 1.7% to 9.5% (source [7]); a
+# configured value outside `assigned_rate_min_ppm`..`assigned_rate_max_ppm` is
+# a data-entry error, not a valid rate.
+
+[sui]
+# Source [6], "Annual wage base": "The wage base for 2026 is $17,600."
+# Contributions are due on remuneration paid to each employee in a calendar
+# year up to this amount.
+#
+# Source [6], "Changes to the UI wage base for UI contributions": for years
+# beginning with 2026 the wage base is 18% of the state's average annual wage,
+# computed from the four most recent published quarters of New York State
+# quarterly census of employment and wages data, rounded up to the nearest
+# $100, and it cannot be reduced from prior years. The base is therefore
+# recomputed every year and must be re-read from Form NYS-50 each January; it
+# is no longer the fixed legislated ladder that ran through 2025.
+wage_base = "17600.00"
+
+# Source [7], "NYS Unemployment Insurance Total UI Contribution Rates", 2026:
+#   Lowest rate       UI 1.625% + RSF 0.075% = 1.7%
+#   New Employer rate UI 4.025% + RSF 0.075% = 4.1%
+#   Highest rate      UI 9.425% + RSF 0.075% = 9.5%
+# The UI component is the normal rate plus the subsidiary rate and is reported
+# on line 4 of Form NYS-45. The Re-employment Service Fund component is
+# reported separately on line 5.
+new_employer_total_rate_ppm = 41000
+new_employer_ui_rate_ppm = 40250
+assigned_rate_min_ppm = 17000
+assigned_rate_max_ppm = 95000
+
+# Source [6], "Re-employment service fund", and source [7] second footnote:
+# 0.075% (0.00075) of quarterly wages subject to contributions, for every
+# contributory employer. It is not experience-rated, being the same 0.075% at
+# every assigned rate, which is why an assigned UI rate taken from a rate
+# notice must be ADDED to this figure rather than replacing it.
+rsf_rate_ppm = 750
+
+# Source [6], "Newly liable employer": the new employer NORMAL rate is
+# recomputed each year from the size of fund index, equals the rate for an
+# employer with a positive account percentage below 1%, and is capped at 3.4%.
+# Source [7]: "For 2026, the new employer normal contribution rate is 3.4%."
+#
+# This is the NORMAL component only. `new_employer_ui_rate_ppm` (4.025%) is
+# that normal rate plus the 2026 subsidiary rate, and
+# `new_employer_total_rate_ppm` (4.1%) adds the Re-employment Service Fund. Do
+# not use this key to compute a contribution; it is recorded so that the 4.025%
+# figure can be reconciled against the publications.
+new_employer_normal_rate_ppm = 34000

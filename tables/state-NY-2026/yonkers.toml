@@ -1,0 +1,78 @@
+# ---------------------------------------------------------------------------
+# YONKERS.
+# ---------------------------------------------------------------------------
+#
+# Two unrelated taxes share the name on a wage statement:
+#   - residents of Yonkers pay a surcharge that is a flat percentage of the
+#     New York State tax computed on the same wage base;
+#   - nonresidents of Yonkers who earn wages in Yonkers pay an earnings tax on
+#     those wages.
+# An employee is subject to at most one of the two.
+
+[yonkers]
+# RESIDENT SURCHARGE. Source [3] pages 17, 19, and 22: "Multiply by 16.75%
+# (0.1675). Withhold the product." The surcharge multiplies the New York STATE
+# tax figure produced by the state bracket schedule or by Method III on the
+# same net wages. It is not a rate on wages, and it is not a percentage of the
+# amount actually withheld for the state.
+#
+# The Yonkers resident computation reuses [nys] wholesale: source [3] page 14
+# reproduces the state's Tables A, B, C and D verbatim, and source [3] pages 17
+# and 19 reproduce the state's columns 1, 3, 4 and 5 verbatim, so the same
+# deduction allowance, exemption allowance, brackets, threshold quanta and
+# Method III thresholds apply. Verified by comparing source [3] page 14 against
+# source [1] page 14, and source [3] pages 17 and 19 against source [1]
+# pages 17 and 19.
+resident_surcharge_rate_ppm = 167500
+
+# NONRESIDENT EARNINGS TAX. Source [3] pages 3, 24, and 25: 0.50%.
+# Source [3] page 3: "The Yonkers nonresident earnings tax rate has not
+# changed."
+nonresident_earnings_rate_ppm = 5000
+
+# Source [3] page 3. Optional flat rates for separately paid supplemental
+# wages.
+#
+# The resident supplemental rate is printed as 1.95975% (0.0195975), which is
+# 19597.5 ppm and therefore NOT REPRESENTABLE as an integer ppm value. It is
+# stored in parts per BILLION, and the key name says so, because silently
+# truncating it to 19597 or 19598 ppm would be a fabricated rate.
+#
+# It is exactly the composition of two integer ppm rates already in this file:
+#   nys.supplemental_rate_ppm * yonkers.resident_surcharge_rate_ppm / 1e6
+#     = 117000 * 167500 / 1_000_000 = 19597.5 ppm = 19_597_500 ppb.
+# A consumer that composes those two integers in a wide integer reproduces the
+# published rate exactly and never needs this key.
+resident_supplemental_rate_ppb = 19597500
+nonresident_supplemental_rate_ppm = 5000
+
+# Method VIII Annualized Tax Method, nonresident earnings tax. Source [3]
+# page 25, "Annual tax rate schedule".
+#
+# THESE ARE NOT BRACKET ROWS. Rows are [over, annualized_exclusion] with two
+# elements. The exclusion is SUBTRACTED from annualized pay and the flat
+# `nonresident_earnings_rate_ppm` is applied to the remainder; there is no base
+# amount and no marginal-rate structure. There is also no filing-status split:
+# one schedule serves single and married.
+#
+# BOUNDARY SEMANTICS DIFFER FROM EVERY OTHER SCHEDULE IN THIS FILE. The
+# publication's columns are "Over" and "But not over", so the lower bound is
+# EXCLUSIVE and the upper bound is INCLUSIVE, which is why the first threshold
+# is printed as 3,999.99 rather than 4,000.00. Row 1 means "over $0 but not
+# over $3,999.99": no tax is withheld and no further steps are taken. Source
+# [3] page 25: "Withholding is not required for annualized pay that is less
+# than $4,000." In integer cents the rows partition cleanly, row 1 covering
+# 0..399_999 cents and row 2 beginning at 400_000 cents.
+#
+# The `false` in row 1 marks "no withholding" rather than a zero exclusion. A
+# zero exclusion would tax the full annualized pay, the opposite of what row 1
+# prescribes, and a zero exclusion is what row 5 legitimately means.
+[yonkers.nonresident_exclusions]
+rows = [
+  [    "0.00", false],
+  [ "3999.99", "3000.00"],
+  ["10000.00", "2000.00"],
+  ["20000.00", "1000.00"],
+  ["30000.00",    "0.00"],
+]
+
