@@ -232,6 +232,11 @@ digits.
 The source is licensed under Apache-2.0; see `LICENSE`. The private
 configuration and ledger are not part of the distributed source.
 
+This source repository ignores files named `rachuba.toml` and `ledger.toml` at
+any depth, including a nested working directory. If you choose other names with
+`--config` or `--ledger`, keep those files in your private repository or outside
+this public checkout; the ignore rule cannot protect arbitrary paths.
+
 No Social Security number is stored anywhere. Pay stubs carry the last four
 digits; the full number is typed into SSA Business Services Online when the W-2
 is filed.
