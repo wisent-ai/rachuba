@@ -133,10 +133,16 @@ impl Config {
         if !ein_shape {
             bail!("company.ein must look like 12-3456789, got {ein:?}");
         }
+        if ein == "00-0000000" {
+            bail!("company.ein is the example placeholder; enter the assigned EIN");
+        }
         if self.employee.ssn_last4.len() != SSN_LAST_DIGITS
             || !self.employee.ssn_last4.chars().all(|c| c.is_ascii_digit())
         {
             bail!("employee.ssn_last4 must be exactly four digits");
+        }
+        if self.employee.ssn_last4 == "0000" {
+            bail!("employee.ssn_last4 is the example placeholder; enter the actual last four digits");
         }
         if self.employee.gross_per_period <= Cents::ZERO {
             bail!("employee.gross_per_period must be positive");

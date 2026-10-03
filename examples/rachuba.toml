@@ -9,7 +9,8 @@
 
 [company]
 legal_name = "Example Labs, Inc."
-ein = "12-3456789"
+# Invalid placeholder; replace with the EIN assigned to your company.
+ein = "00-0000000"
 address = "1 Example Street, San Francisco, CA 94103"
 # Two-letter postal code. Selects the tables/state-<CODE>-<year>/ folder.
 state = "CA"
@@ -37,7 +38,8 @@ futa_credit_reduction_ppm = 0
 
 [employee]
 name = "Jane Founder"
-ssn_last4 = "6789"
+# Invalid SSN serial; replace with the employee's actual last four digits.
+ssn_last4 = "0000"
 address = "2 Example Avenue, San Francisco, CA 94110"
 
 # One of: weekly, biweekly, semimonthly, monthly, quarterly, semiannually,

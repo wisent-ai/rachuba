@@ -224,8 +224,10 @@ naming its path; a missing ledger is never read as "no runs yet".
 Neither `rachuba.toml` nor `ledger.toml` is in this repository; both belong in
 the company's own private one, and so do the household's figures in
 `[household]`. Commit them there. A payroll you cannot reconstruct from a
-commit is a payroll you cannot defend in an examination. Examples in this
-repository use invented figures only.
+commit is a payroll you cannot defend in an examination. The invented template
+uses invalid EIN and SSN-last-four placeholders. Commands that load the
+configuration refuse them until you enter the assigned EIN and actual last four
+digits.
 
 The source is licensed under Apache-2.0; see `LICENSE`. The private
 configuration and ledger are not part of the distributed source.
