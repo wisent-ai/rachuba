@@ -28,17 +28,12 @@ deposit_schedule = "monthly"
 sui_rate_ppm = 34000
 
 # FUTA credit reduction, in parts-per-million, for states that have not repaid
-# their federal unemployment loans.
-#
-# California has been a credit reduction state every year since 2022 and was
-# determined at 1.2% for 2025. The 2026 rate is NOT determined until the
-# 10 November 2026 test date and then applies retroactively to the whole year,
-# payable with Form 940 the following January. The state loan balance is
-# projected at $22.0 billion at the end of 2026, so repayment is not in
-# prospect. 15000 accrues 1.5%, the historically consistent outcome; the worst
-# published case is 5.3% if the add-on relief is not granted. Set it to 0 and
-# `rachuba run` will warn you that nothing is being accrued.
-futa_credit_reduction_ppm = 15000
+# their federal unemployment loans. Set this from Schedule A (Form 940) for
+# the tax year. A later determination can apply to wages paid earlier in the
+# year. Zero here means no reduction has been entered; it is not an estimate
+# of the final rate. For a credit reduction state `rachuba run` warns until
+# you enter the rate, so review the liability again when it is determined.
+futa_credit_reduction_ppm = 0
 
 [employee]
 name = "Jane Founder"

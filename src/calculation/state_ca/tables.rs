@@ -113,15 +113,11 @@ pub struct Local {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct FutaCreditReduction {
-    /// Whether a reduction has been DETERMINED for this tax year. The test date
-    /// is 10 November and the determination is retroactive to the whole year,
-    /// payable with Form 940 the following January.
-    pub determined_2026: bool,
-    pub test_date_2026: String,
-    /// What to accrue monthly pending the determination. Explicitly not a
-    /// determination; see `recommended_accrual_basis` in the data file.
-    pub recommended_accrual_ppm: i64,
-    pub potential_2026_total_ppm: i64,
+    /// Final rates from Schedule A (Form 940), by tax year. Absence of the
+    /// current year means its rate has not been determined.
+    pub determined: Vec<(i32, i64)>,
+    /// Date on which the current year's advance balance is tested.
+    pub test_date: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]

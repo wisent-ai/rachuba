@@ -145,12 +145,14 @@ Two more things that are not code but cost money. California bars local income
 tax statewide under Revenue and Taxation Code section 17041.5, and San
 Francisco's Payroll Expense Tax was repealed effective 2021, so there is no San
 Francisco employee withholding at all; the city's Gross Receipts Tax is an
-employer business tax outside this engine. And California has been a FUTA credit
+employer business tax outside this engine. California has been a FUTA credit
 reduction state every year since 2022, determined at 1.2% for 2025. The 2026
-rate is not determined until 10 November 2026 and then applies retroactively to
-the whole year. `rachuba run` warns when `futa_credit_reduction_ppm` is zero so
-the accrual is not forgotten and the whole year does not arrive as one bill in
-February.
+rate is not determined until 10 November 2026 and then applies retroactively
+to the whole year. The example leaves it at zero rather than guessing a rate.
+For California, `rachuba run` warns while the rate is undetermined, even when
+an estimated accrual is entered. Once Schedule A (Form 940) determines it, a
+different configured rate still warns; update the value and revisit the year's
+liability.
 
 ## Two withholding defaults
 

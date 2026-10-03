@@ -64,27 +64,37 @@ fn apply_rate(amount: Cents, rate_ppm: i64) -> Cents {
     Cents(round_half_up(amount.0 as i128 * rate_ppm as i128, 1_000_000) as i64)
 }
 
-/// Warn when the FUTA credit reduction is undetermined but the configuration is
-/// not accruing for it.
-///
-/// California has been a credit reduction state every year since 2022 and its
-/// loan balance is still growing. The 2026 determination lands on 10 November
-/// and applies retroactively to the whole year, payable with Form 940 in
-/// January. An employer that accrues nothing gets a bill in February for the
-/// entire year at once.
+/// Warn when the configured FUTA credit reduction differs from the final
+/// Schedule A rate, or when the current year's rate is still undetermined.
 pub fn futa_advisory(t: &Tables, configured_ppm: i64) -> Option<String> {
-    if t.futa_credit_reduction.determined_2026 || configured_ppm > 0 {
-        return None;
+    if let Some((_, rate)) = t
+        .futa_credit_reduction
+        .determined
+        .iter()
+        .find(|(year, _)| *year == t.year)
+    {
+        if *rate == configured_ppm {
+            return None;
+        }
+        return Some(format!(
+            "California's {} FUTA credit reduction is {} ppm in Schedule A (Form 940), \
+             but company.futa_credit_reduction_ppm is {} ppm. Update the configuration \
+             and revisit the year's Form 940 liability.",
+            t.year, rate, configured_ppm
+        ));
     }
     Some(format!(
-        "California's {} FUTA credit reduction is not determined until {} and applies \
-         retroactively to the whole year. company.futa_credit_reduction_ppm is 0, so nothing is \
-         being accrued. The data file recommends accruing {} ppm; the worst published case is \
-         {} ppm.",
+        "California's {} FUTA credit reduction is not determined until {}. \
+         company.futa_credit_reduction_ppm is {} ppm{}; verify the final rate in \
+         Schedule A (Form 940) and revisit the year's liability.",
         t.year,
-        t.futa_credit_reduction.test_date_2026,
-        t.futa_credit_reduction.recommended_accrual_ppm,
-        t.futa_credit_reduction.potential_2026_total_ppm,
+        t.futa_credit_reduction.test_date,
+        configured_ppm,
+        if configured_ppm == 0 {
+            ", so no reduction is being accrued"
+        } else {
+            ", which is an estimate"
+        }
     ))
 }
 

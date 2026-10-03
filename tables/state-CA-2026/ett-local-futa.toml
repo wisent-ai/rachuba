@@ -103,42 +103,15 @@ employee_withholding = false
 
 # ---------------------------------------------------------------------------
 # FUTA CREDIT REDUCTION FOR CALIFORNIA.
-# Feeds `company.futa_credit_reduction_ppm` (see examples/rachuba.toml).
 # ---------------------------------------------------------------------------
 #
-# ####################################################################
-# ##  THE 2026 FIGURE IS NOT DETERMINED YET. THIS FILE DOES NOT     ##
-# ##  CONTAIN ONE. `determined_ppm` IS DELIBERATELY ABSENT.         ##
-# ####################################################################
-#
-# HOW THE MECHANISM WORKS. Source [7]: a state with an outstanding Title XII
-# advance on January 1 of two or more consecutive years loses part of the 5.4%
-# credit against the 6.0% gross FUTA rate, "if all advances are not repaid
-# before November 10 of the taxable year". Employers in a state without a
-# further reduction pay 0.6% on the first $7,000; employers in a reduction state
-# pay 0.6% plus the reduction. The base reduction grows by 0.3 percentage points
-# for each additional consecutive January 1 with a balance, and after the third
-# and fifth such January 1 the state becomes exposed to two further add-ons: the
-# "2.7 add-on" (FUTA section 3302(c)(2)(B)) and the Benefit Cost Rate add-on
-# (FUTA section 3302(c)(2)).
-#
-# THREE PROPERTIES THAT MAKE THIS A REAL ACCOUNTING PROBLEM, NOT A LOOKUP:
-#
-#   1. IT IS RETROACTIVE TO THE WHOLE CALENDAR YEAR. The determination is made
-#      on November 10 but applies to every dollar of FUTA taxable wages paid
-#      since January 1. There is no prospective-only version.
-#   2. IT IS PAID WITH FORM 940, in January following the year. Source [9]
-#      describes exactly this lag for California: reductions "started occurring
-#      for tax year 2022, with the higher federal taxes due in January 2023".
-#   3. THEREFORE THE EMPLOYER SHOULD ACCRUE FOR IT MONTHLY rather than discover
-#      it in February. At the potential 2026 base of 1.5% the accrual is
-#      $7,000 * 0.015 = $105.00 per employee for the year; at the full potential
-#      total of 5.3% it would be $371.00. Accruing nothing and being right is
-#      luck, not a policy.
-#
-# WHAT IS ACTUALLY KNOWN, EACH FIGURE LABELLED BY ITS STATUS.
+# Source [7]: an outstanding Title XII advance can reduce the state's FUTA
+# credit for the whole tax year if not repaid by November 10. The reduction
+# is paid with Form 940 the following January. The operator enters the rate
+# from that year's Schedule A in company.futa_credit_reduction_ppm; historical
+# determinations below are not a forecast for 2026.
+
 [futa_credit_reduction]
-state = "CA"
 
 # DETERMINED, FINAL, HISTORICAL. Source [7], "Actual FUTA Credit Reductions
 # 2010-2025", and independently source [8], the instructions to Schedule A
@@ -164,65 +137,7 @@ determined = [
   [2025, 12000],
 ]
 
-# NOT DETERMINED. The 2026 figure becomes final only on the test date below.
-determined_2026 = false
-test_date_2026 = "2026-11-10"
-
-# POTENTIAL, PRELIMINARY, NOT LAW. Source [7], "Potential 2026 Credit
-# Reductions", which states that the listed states "had a Title XII advance
-# balance on January 1, 2026" and are "potentially subject to a reduction in
-# FUTA credit on their IRS Form 940 for 2026, if the outstanding advance is not
-# repaid by November 10, 2026". Its California row reads:
-#
-#   Credit reduction due to outstanding advance ......... 0.015
-#   2026 estimated "2.7 add-on" ......................... 0
-#   2026 estimated "BCR add-on" ......................... 0.038
-#   2026 potential TOTAL credit reduction ............... 0.053
-#
-# Source [7] labels the add-on columns "a preliminary estimate based on
-# estimated wages and tax contributions for the third and fourth quarter of
-# 2025", and its footnote 6 notes that states may qualify for relief "through
-# avoidance, caps on reductions and fifth year waivers".
-#
-# WHICH OF THESE IS LIKELY. The 1.5% base is the mechanical continuation of the
-# 0.3%-per-year ladder from the 1.2% assessed for 2025 (source [7] historical
-# table; source [9] describes the same ladder). The 3.8% BCR add-on has been
-# WAIVED in every California year since 2014 -- that is precisely what source
-# [7]'s footnote 3 records against each of those years -- so the historically
-# consistent outcome is 1.5% and not 5.3%. THAT IS A PATTERN, NOT A
-# DETERMINATION. The BCR waiver must be requested by the state and granted; it
-# is not automatic, and a year in which it is not granted more than triples the
-# liability.
-#
-# REPAYMENT IS NOT REALISTICALLY IN PROSPECT FOR 2026, which is why the base
-# reduction is the live case rather than zero. Source [9], the EDD's own May
-# 2026 forecast: California's year-end federal loan balance "was $21.6 billion
-# for 2024 and $21.7 billion for 2025, and the balance is projected to be
-# $22.0 billion by the end of 2026 and $21.4 billion by the end of 2027".
-# California has paid interest every year since 2021, most recently $628.3
-# million on 2025-09-30, and source [9] states it "will continue to owe interest
-# until the loan is paid off completely".
-potential_2026_base_ppm = 15000
-potential_2026_two_point_seven_add_on_ppm = 0
-potential_2026_bcr_add_on_ppm = 38000
-potential_2026_total_ppm = 53000
-
-# WHAT A CONSUMER SHOULD DO. `company.futa_credit_reduction_ppm` in
-# examples/rachuba.toml is an operator-set field and this file deliberately does
-# not supply a 2026 default for it. Until the November 10, 2026 determination is
-# published on source [7] and restated in the instructions to Schedule A
-# (Form 940) for 2026:
-#
-#   - to accrue on the historically consistent outcome, configure 15000 ppm
-#     (1.5%), giving a net FUTA rate of 0.6% + 1.5% = 2.1% and $147.00 per
-#     employee at the $7,000 base;
-#   - to accrue on the worst published case, configure 53000 ppm (5.3%), which
-#     leaves only 0.1% of the 5.4% credit, giving 6.0% - 0.1% = 5.9% net and
-#     $413.00 per employee;
-#   - configuring 0 is only correct if California repays before 2026-11-10, for
-#     which source [9] gives no support.
-#
-# In every case, replace the configured value with the DETERMINED rate once it
-# is published, and true up the accrual on the Form 940 filed in January 2027.
-recommended_accrual_ppm = 15000
-recommended_accrual_basis = "historically-consistent base reduction; NOT a determination"
+# The 2026 determination is not in the published Schedule A yet. When it is,
+# add [2026, rate_ppm] above from the final IRS instructions. Until then, a
+# configured rate is an estimate rather than a determined liability.
+test_date = "2026-11-10"
