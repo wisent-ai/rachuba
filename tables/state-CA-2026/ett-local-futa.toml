@@ -103,7 +103,7 @@ employee_withholding = false
 
 # ---------------------------------------------------------------------------
 # FUTA CREDIT REDUCTION FOR CALIFORNIA.
-# Feeds `company.futa_credit_reduction_ppm` (see rachuba.example.toml).
+# Feeds `company.futa_credit_reduction_ppm` (see examples/rachuba.toml).
 # ---------------------------------------------------------------------------
 #
 # ####################################################################
@@ -208,7 +208,7 @@ potential_2026_bcr_add_on_ppm = 38000
 potential_2026_total_ppm = 53000
 
 # WHAT A CONSUMER SHOULD DO. `company.futa_credit_reduction_ppm` in
-# rachuba.example.toml is an operator-set field and this file deliberately does
+# examples/rachuba.toml is an operator-set field and this file deliberately does
 # not supply a 2026 default for it. Until the November 10, 2026 determination is
 # published on source [7] and restated in the instructions to Schedule A
 # (Form 940) for 2026:

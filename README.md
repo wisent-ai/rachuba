@@ -11,7 +11,8 @@ money: deposits go through EFTPS and the state portal, and the elective deferral
 goes to the plan trustee. What it guarantees is that the amounts and the
 due dates are right.
 
-Documentation, one page per command: <https://rachuba.wisent.com/docs/>.
+The documentation source has one page per command in `rachuba-landing`. Its
+public address is <https://rachuba.wisent.com/docs/> when the site is published.
 
 ## Why this exists
 
@@ -196,6 +197,7 @@ possible moment.
 
 | path | what it is |
 |------|-----------|
+| `examples/rachuba.toml` | the invented starting configuration copied by `rachuba init` |
 | `rachuba.toml` | the payer, the employee, the Form W-4 and the elections |
 | `ledger.toml` | every committed run; the source of truth for wage bases and form lines |
 | `tables/federal-<year>/` | Publication 15-T schedules, FICA, FUTA, retirement limits; `form-1040.toml` and `ira.toml` for the return projection |
@@ -222,6 +224,9 @@ the company's own private one, and so do the household's figures in
 `[household]`. Commit them there. A payroll you cannot reconstruct from a
 commit is a payroll you cannot defend in an examination. Examples in this
 repository use invented figures only.
+
+The source is licensed under Apache-2.0; see `LICENSE`. The private
+configuration and ledger are not part of the distributed source.
 
 No Social Security number is stored anywhere. Pay stubs carry the last four
 digits; the full number is typed into SSA Business Services Online when the W-2

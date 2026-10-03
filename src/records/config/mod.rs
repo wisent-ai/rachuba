@@ -169,6 +169,6 @@ impl Config {
     /// The starting file written by `rachuba init`, with every field present so
     /// the operator edits rather than guesses.
     pub fn template() -> &'static str {
-        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/rachuba.example.toml"))
+        include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/rachuba.toml"))
     }
 }
