@@ -5,8 +5,8 @@
 //! where, and by when.
 //!
 //! It does not move money. Deposits go through EFTPS and the state portal, and
-//! the elective deferral goes to the plan trustee, all by the operator. What
-//! this tool guarantees is that the amounts and the due dates are right.
+//! elective deferrals go to the plan trustee. Dates and amounts depend on the
+//! published tables and company entries; undetermined rates remain warnings.
 
 mod cli;
 
