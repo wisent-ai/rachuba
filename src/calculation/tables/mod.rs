@@ -58,20 +58,28 @@ pub struct Retirement {
     pub annual_additions_limit: Cents,
     pub compensation_limit: Cents,
     pub roth_catch_up_wage_threshold: Cents,
+    /// Section 414(v)(1): the age from which catch-up contributions begin.
+    pub catch_up_age: u32,
+    /// Section 414(v)(2)(E): the first and last ages of the higher catch-up.
+    pub higher_catch_up_first_age: u32,
+    pub higher_catch_up_last_age: u32,
+    /// Section 404(a)(3)(A): the employer's deductible share of compensation.
+    pub employer_deduction_ppm: i64,
 }
 
 impl Retirement {
-    /// Section 414(v): catch-up contributions begin in the year the employee attains 50, and
-    /// section 414(v)(2)(E) raises them for the years they attain 60 through 63.
-    const CATCH_UP_AGE: u32 = 50;
-    const HIGHER_CATCH_UP_AGES: std::ops::RangeInclusive<u32> = 60..=63;
-
     /// Section 414(v) catch-up available at a given age, using the age the
-    /// employee attains during the calendar year.
+    /// employee attains during the calendar year and the ages the year's table
+    /// declares.
     pub fn catch_up_for_age(&self, age: Option<u32>) -> Cents {
         match age {
-            Some(a) if Self::HIGHER_CATCH_UP_AGES.contains(&a) => self.catch_up_60_to_63,
-            Some(a) if a >= Self::CATCH_UP_AGE => self.catch_up_50_to_59_or_64_plus,
+            Some(a)
+                if (self.higher_catch_up_first_age..=self.higher_catch_up_last_age)
+                    .contains(&a) =>
+            {
+                self.catch_up_60_to_63
+            }
+            Some(a) if a >= self.catch_up_age => self.catch_up_50_to_59_or_64_plus,
             _ => Cents::ZERO,
         }
     }
@@ -135,6 +143,14 @@ impl FederalTables {
         if self.retirement.elective_deferral_limit <= Cents::ZERO {
             bail!("retirement.elective_deferral_limit must be positive");
         }
+        if self.retirement.higher_catch_up_first_age > self.retirement.higher_catch_up_last_age {
+            bail!(
+                "retirement.higher_catch_up_first_age is after retirement.higher_catch_up_last_age"
+            );
+        }
+        if !(0..=crate::money::WHOLE_PPM).contains(&self.retirement.employer_deduction_ppm) {
+            bail!("retirement.employer_deduction_ppm must be a share between 0 and 1,000,000 ppm");
+        }
         Ok(())
     }
 }
@@ -155,9 +171,9 @@ pub fn resolve_dir(config_path: &Path) -> Result<PathBuf> {
         }
         return Ok(p);
     }
-    let parent = config_path.parent().with_context(|| {
-        format!("{} has no parent directory", config_path.display())
-    })?;
+    let parent = config_path
+        .parent()
+        .with_context(|| format!("{} has no parent directory", config_path.display()))?;
     let p = parent.join("tables");
     if !p.is_dir() {
         bail!(

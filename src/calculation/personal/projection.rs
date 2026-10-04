@@ -13,7 +13,9 @@ use chrono::{Datelike, Days, NaiveDate};
 use serde::Serialize;
 
 use super::estimated::{estimated_tax, EstimatedInput};
-use super::{compute_tax, EstimatedTax, IraEligibility, ReturnIncome, ReturnTables, TaxComputation};
+use super::{
+    compute_tax, EstimatedTax, IraEligibility, ReturnIncome, ReturnTables, TaxComputation,
+};
 use crate::calendar::{estimated_tax_due, ESTIMATED_TAX_INSTALLMENTS};
 use crate::config::{Config, Household};
 use crate::ledger::Ledger;
@@ -24,9 +26,6 @@ use crate::tables::{FederalTables, FilingStatus};
 
 /// The label of a run paid on the regular schedule.
 const REGULAR_RUN: &str = "regular";
-/// The employer contribution a company may deduct: 25% of compensation,
-/// section 404(a)(3)(A).
-const EMPLOYER_DEDUCTION_PPM: i64 = 250_000;
 
 pub struct ProjectionRequest<'a> {
     pub year: i32,
@@ -211,7 +210,7 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
     let compensation = y.gross.min(ret.compensation_limit);
     let counted_deferral = projected_deferral.min(ret.elective_deferral_limit);
     let employer_maximum = compensation
-        .mul_ppm(EMPLOYER_DEDUCTION_PPM)
+        .mul_ppm(ret.employer_deduction_ppm)
         .min((ret.annual_additions_limit - counted_deferral).floor_zero());
     let with_wages = |wages: Cents| {
         compute_tax(

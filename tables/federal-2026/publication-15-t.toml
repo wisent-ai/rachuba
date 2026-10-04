@@ -132,3 +132,13 @@ compensation_limit = "360000.00"
 # Prior-year Social Security wages above this force catch-up contributions to
 # be Roth. SECURE 2.0 section 603, effective 2026.
 roth_catch_up_wage_threshold = "150000.00"
+# Section 414(v)(1): catch-up contributions begin in the year the employee
+# attains this age.
+catch_up_age = 50
+# Section 414(v)(2)(E)(i), added by SECURE 2.0 section 109: the higher catch-up
+# applies in the years the employee attains these ages, inclusive.
+higher_catch_up_first_age = 60
+higher_catch_up_last_age = 63
+# Section 404(a)(3)(A)(i)(I): the employer may deduct contributions up to 25%
+# of the compensation paid to the plan's participants.
+employer_deduction_ppm = 250000
