@@ -126,3 +126,26 @@ prior_year_high_income_ppm = 1100000
 high_income_agi = "150000.00"
 high_income_agi_separate = "75000.00"
 minimum_balance_due = "1000.00"
+
+# Required installments of a calendar-year taxpayer, 26 U.S.C. 6654(c)(2):
+# April 15, June 15 and September 15 of the year and January 15 of the next
+# (year_offset 1). Each is moved to the next business day under 26 U.S.C. 7503.
+[[individual.estimated_tax.installments]]
+month = 4
+day = 15
+year_offset = 0
+
+[[individual.estimated_tax.installments]]
+month = 6
+day = 15
+year_offset = 0
+
+[[individual.estimated_tax.installments]]
+month = 9
+day = 15
+year_offset = 0
+
+[[individual.estimated_tax.installments]]
+month = 1
+day = 15
+year_offset = 1

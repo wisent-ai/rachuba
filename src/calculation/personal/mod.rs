@@ -107,6 +107,18 @@ pub struct EstimatedTaxRules {
     pub high_income_agi: Cents,
     pub high_income_agi_separate: Cents,
     pub minimum_balance_due: Cents,
+    /// The required installments' statutory dates, in order, as the year's
+    /// table declares them.
+    pub installments: Vec<InstallmentDate>,
+}
+
+/// One required installment's statutory date: `month` and `day` of the tax
+/// year plus `year_offset` years, before any weekend or holiday shift.
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct InstallmentDate {
+    pub month: u32,
+    pub day: u32,
+    pub year_offset: i32,
 }
 
 /// The `[individual]` section of a federal tax year's folder.
@@ -207,6 +219,22 @@ impl ReturnTables {
     }
 
     fn validate(&self) -> Result<()> {
+        let installments = &self.individual.estimated_tax.installments;
+        if installments.is_empty() {
+            bail!("individual.estimated_tax.installments declares no installment");
+        }
+        for (index, date) in installments.iter().enumerate() {
+            if chrono::NaiveDate::from_ymd_opt(self.year + date.year_offset, date.month, date.day)
+                .is_none()
+            {
+                bail!(
+                    "individual.estimated_tax.installments[{index}] is not a date: month {}, day {}, year offset {}",
+                    date.month,
+                    date.day,
+                    date.year_offset
+                );
+            }
+        }
         let r = &self.individual.rates;
         r.single.validate("individual.rates.single")?;
         r.married_filing_jointly
@@ -228,17 +256,34 @@ impl ReturnTables {
         }
         let i = &self.ira;
         for (name, (low, high)) in [
-            ("deduction_covered.married_filing_jointly", i.deduction_covered.married_filing_jointly),
-            ("deduction_covered.married_filing_separately", i.deduction_covered.married_filing_separately),
+            (
+                "deduction_covered.married_filing_jointly",
+                i.deduction_covered.married_filing_jointly,
+            ),
+            (
+                "deduction_covered.married_filing_separately",
+                i.deduction_covered.married_filing_separately,
+            ),
             ("deduction_covered.other", i.deduction_covered.other),
-            ("deduction_spouse_covered.married_filing_jointly", i.deduction_spouse_covered.married_filing_jointly),
-            ("deduction_spouse_covered.married_filing_separately", i.deduction_spouse_covered.married_filing_separately),
+            (
+                "deduction_spouse_covered.married_filing_jointly",
+                i.deduction_spouse_covered.married_filing_jointly,
+            ),
+            (
+                "deduction_spouse_covered.married_filing_separately",
+                i.deduction_spouse_covered.married_filing_separately,
+            ),
             ("roth.married_filing_jointly", i.roth.married_filing_jointly),
-            ("roth.married_filing_separately", i.roth.married_filing_separately),
+            (
+                "roth.married_filing_separately",
+                i.roth.married_filing_separately,
+            ),
             ("roth.other", i.roth.other),
         ] {
             if low >= high {
-                bail!("ira.{name}: the phase-out must begin below where it ends, got {low} to {high}");
+                bail!(
+                    "ira.{name}: the phase-out must begin below where it ends, got {low} to {high}"
+                );
             }
         }
         if !i.rounding_increment.is_positive() {

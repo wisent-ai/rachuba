@@ -16,7 +16,7 @@ use super::estimated::{estimated_tax, EstimatedInput};
 use super::{
     compute_tax, EstimatedTax, IraEligibility, ReturnIncome, ReturnTables, TaxComputation,
 };
-use crate::calendar::{estimated_tax_due, ESTIMATED_TAX_INSTALLMENTS};
+use crate::calendar::estimated_tax_due;
 use crate::config::{Config, Household};
 use crate::ledger::Ledger;
 use crate::money::Cents;
@@ -175,7 +175,12 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
     let tax = compute_tax(it, &income);
 
     // Estimated tax.
-    let last_installment = estimated_tax_due(year, ESTIMATED_TAX_INSTALLMENTS);
+    let last = it
+        .estimated_tax
+        .installments
+        .last()
+        .expect("the table loader refuses a year without installments");
+    let last_installment = estimated_tax_due(year, last.month, last.day, last.year_offset);
     for p in &h.estimated_payments {
         if p.paid_on.year() < year || p.paid_on > last_installment {
             bail!(

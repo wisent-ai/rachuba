@@ -60,9 +60,7 @@ mod holidays;
 
 use chrono::{Datelike, NaiveDate};
 pub use deposits::employment_tax_deposit_due;
-pub use filings::{
-    estimated_tax_due, form_940_due, form_941_due, form_w2_due, ESTIMATED_TAX_INSTALLMENTS,
-};
+pub use filings::{estimated_tax_due, form_940_due, form_941_due, form_w2_due};
 pub use holidays::federal_holidays;
 use holidays::{is_observed_federal_holiday, is_weekend};
 
@@ -208,7 +206,3 @@ fn last_day_of_month(year: i32, month: u32) -> NaiveDate {
         NaiveDate::from_ymd_opt(next_year, next_month, 1).expect("the 1st of a real month");
     add_days(first_of_next, -1)
 }
-
-
-
-

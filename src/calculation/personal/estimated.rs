@@ -1,13 +1,13 @@
 //! The estimated tax safe harbor, installment by installment.
 //!
 //! Section 6654 charges an addition to tax, interest by another name, on
-//! every installment that was short when it fell due. Each of the four
-//! installments is a quarter of the required annual payment: the lesser of
+//! every installment that was short when it fell due. Each of the
+//! installments the year's table declares is an equal share of the required annual payment: the lesser of
 //! 90% of this year's tax and 100% of last year's, or 110% when last year's
 //! adjusted gross income was above the threshold. Without last year's figures
 //! only the 90% rule is available.
 //!
-//! Withholding counts as paid in four equal parts on the four due dates
+//! Withholding counts as paid in equal parts on the installments' due dates
 //! whenever during the year it was actually withheld, section 6654(g), which
 //! is why a late-year increase in withholding can cover an early shortfall and
 //! an estimated payment cannot. Estimated payments count from the day paid.
@@ -20,7 +20,7 @@ use chrono::NaiveDate;
 use serde::Serialize;
 
 use super::EstimatedTaxRules;
-use crate::calendar::{estimated_tax_due, ESTIMATED_TAX_INSTALLMENTS};
+use crate::calendar::estimated_tax_due;
 use crate::config::EstimatedPayment;
 use crate::money::{Cents, WHOLE_PPM};
 use crate::tables::FilingStatus;
@@ -94,10 +94,12 @@ pub fn estimated_tax(i: &EstimatedInput<'_>) -> EstimatedTax {
     };
     let below_minimum = i.total_tax - i.withholding < r.minimum_balance_due;
 
-    let installments: Vec<Installment> = (1..=ESTIMATED_TAX_INSTALLMENTS)
-        .map(|n| {
-            let due = estimated_tax_due(i.year, n);
-            let share = WHOLE_PPM * i64::from(n) / i64::from(ESTIMATED_TAX_INSTALLMENTS);
+    let count = r.installments.len() as i64;
+    let installments: Vec<Installment> = (1u32..)
+        .zip(r.installments.iter())
+        .map(|(n, date)| {
+            let due = estimated_tax_due(i.year, date.month, date.day, date.year_offset);
+            let share = WHOLE_PPM * i64::from(n) / count;
             let required_to_date = required_annual_payment.mul_ppm(share);
             let paid_by_due: Cents = i
                 .payments

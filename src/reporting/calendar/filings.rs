@@ -73,30 +73,18 @@ pub fn form_w2_due(year: i32) -> NaiveDate {
     irs_business_day_on_or_after(january_31_following(year))
 }
 
-/// The four required installments of estimated income tax a year has.
-pub const ESTIMATED_TAX_INSTALLMENTS: u32 = 4;
-
-/// When installment `number` (1 to 4) of an individual's estimated tax for
-/// `year` is due: April 15, June 15 and September 15 of the year and January
-/// 15 of the next, each moved to the next business day when it falls on a
-/// weekend or legal holiday.
-///
-/// 26 U.S.C. 6654(c)(2) for a calendar-year taxpayer; the shift is 26 U.S.C.
-/// 7503.
+/// When an installment of an individual's estimated tax for `year` is due: the
+/// statutory `month` and `day` of `year + year_offset` the year's table
+/// declares (26 U.S.C. 6654(c)(2)), moved to the next business day when it
+/// falls on a weekend or legal holiday (26 U.S.C. 7503).
 ///
 /// # Panics
 ///
-/// Panics when `number` is outside 1 through 4. It comes from a loop over
-/// [`ESTIMATED_TAX_INSTALLMENTS`], never from input.
-pub fn estimated_tax_due(year: i32, number: u32) -> NaiveDate {
-    let (y, month) = match number {
-        1 => (year, 4),
-        2 => (year, 6),
-        3 => (year, 9),
-        4 => (year + 1, 1),
-        other => panic!("estimated tax installment {other} does not exist"),
-    };
-    let statutory = NaiveDate::from_ymd_opt(y, month, 15).expect("the 15th exists in every month");
+/// Panics when the date does not exist; the table loader refuses such a table
+/// before any installment is computed.
+pub fn estimated_tax_due(year: i32, month: u32, day: u32, year_offset: i32) -> NaiveDate {
+    let statutory = NaiveDate::from_ymd_opt(year + year_offset, month, day)
+        .expect("the table loader checked every installment date");
     irs_business_day_on_or_after(statutory)
 }
 
