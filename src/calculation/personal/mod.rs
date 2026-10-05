@@ -19,7 +19,9 @@ mod tax;
 
 pub use estimated::{EstimatedTax, Installment};
 pub use ira::IraEligibility;
-pub use projection::{project, PayrollYear, Projection, ProjectionRequest, Retirement};
+pub use projection::{
+    project, PayrollYear, Projection, ProjectionRequest, Retirement, TablesUsed,
+};
 pub use tax::{compute_tax, ReturnIncome, TaxComputation};
 
 use std::path::Path;

@@ -59,7 +59,10 @@ fn percent(ppm: i64) -> String {
 
 fn print_projection(p: &Projection) {
     let t = &p.tax;
-    println!("Federal return projection for {}, {}\n", p.year, p.filing_status);
+    println!(
+        "Federal return projection for {}, {}\n",
+        p.year, p.filing_status
+    );
     println!(
         "  {} regular run(s) recorded; {} remaining pay period(s) projected at the configured\n  \
          gross and elections.\n",
@@ -73,7 +76,10 @@ fn print_projection(p: &Projection) {
         row("Spouse wages", i.wages - p.payroll.w2_box1);
     }
     row("Other income", i.other_income);
-    row("Interest and ordinary dividends", i.interest_and_ordinary_dividends);
+    row(
+        "Interest and ordinary dividends",
+        i.interest_and_ordinary_dividends,
+    );
     row("Qualified dividends", i.qualified_dividends);
     row(
         &format!(
@@ -91,7 +97,10 @@ fn print_projection(p: &Projection) {
     println!("Tax");
     row("Income tax", t.income_tax);
     if t.preferential_income.is_positive() {
-        row("  of which income taxed at capital gains rates", t.preferential_income);
+        row(
+            "  of which income taxed at capital gains rates",
+            t.preferential_income,
+        );
     }
     row("Credits", -t.credits_applied);
     row("Net investment income tax", t.net_investment_income_tax);
@@ -138,7 +147,9 @@ fn print_projection(p: &Projection) {
         );
     }
     if e.below_minimum {
-        println!("\n  Tax after withholding is under the minimum: no estimated tax addition applies.");
+        println!(
+            "\n  Tax after withholding is under the minimum: no estimated tax addition applies."
+        );
     } else if let Some(next) = &e.next_due {
         if next.shortfall.is_positive() {
             println!(
@@ -163,10 +174,19 @@ fn print_projection(p: &Projection) {
     if let Some(per) = r.per_period_to_fill {
         row("Deferral per remaining period that reaches it", per);
     }
-    row("Largest employer contribution for the year", r.employer_maximum);
+    row(
+        "Largest employer contribution for the year",
+        r.employer_maximum,
+    );
     row("Employer contribution as elected", r.employer_projected);
-    row("Federal tax saved by the pre-tax deferrals", r.pretax_saving);
-    row("Further saving if the unused ceiling goes pre-tax", r.fill_room_saving);
+    row(
+        "Federal tax saved by the pre-tax deferrals",
+        r.pretax_saving,
+    );
+    row(
+        "Further saving if the unused ceiling goes pre-tax",
+        r.fill_room_saving,
+    );
     println!();
 
     row("Modified AGI used for IRA phase-outs", p.ira_magi);
@@ -175,6 +195,12 @@ fn print_projection(p: &Projection) {
         print_ira("IRA, spouse", spouse);
     }
     println!("State income tax is not part of this projection.");
+    println!();
+    println!("Tables for {}", p.year);
+    println!("  Payroll         {}", p.tables.payroll);
+    println!("  Individual      {}", p.tables.individual);
+    println!("  IRA             {}", p.tables.ira);
+    println!("  Legal holidays  {}", p.tables.legal_holidays);
 }
 
 fn print_ira(title: &str, i: &IraEligibility) {

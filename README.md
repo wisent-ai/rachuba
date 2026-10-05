@@ -253,14 +253,21 @@ ledger, `src/reporting/` owns dates, forms and wage statements, and `src/cli/`
 owns command dispatch and output.
 Each state's table schema is separate from its withholding method; IRS legal
 holidays remain distinct from the Department of Labor business-day definition.
+Neither set is computed: both are the year's `legal-holidays.toml`, and a due
+date that falls past the table's `covers_through` is refused, naming the
+coverage and the folder where the next schedule belongs.
 
 ## Rolling to a new tax year
 
 1. Copy `tables/federal-<year>/` to the new year and replace the numbers
    from that year's Publication 15-T percentage-method tables, the SSA wage base
    announcement, and the annual retirement limits; `form-1040.toml` from that
-   year's inflation-adjustment revenue procedure, and `ira.toml` from the IRS
-   notice of the year's retirement limits.
+   year's inflation-adjustment revenue procedure, `ira.toml` from the IRS
+   notice of the year's retirement limits, and `legal-holidays.toml` from
+   OPM's federal holiday schedules for that year and the next (the year's
+   obligations fall due into January of the next) with the District of
+   Columbia's own legal holidays: Emancipation Day and, every fourth year,
+   Inauguration Day.
 2. Do the same for each state folder from that state's reissued publication.
    Keep every section file under 300 lines and at most five files per folder;
    add a sub-folder when a section outgrows that, as `state-CA-<year>/pit/` does.
@@ -282,6 +289,8 @@ figure that could not be verified is absent rather than guessed.
 - 26 CFR 31.6302-1, employment tax deposit schedules
 - 26 CFR 31.6071(a)-1 and 26 U.S.C. 6071(c), return due dates
 - 29 CFR 2510.3-102, participant contribution safe harbor
+- 5 U.S.C. 6103, Executive Order 11582, OPM federal holiday schedules 2026
+  and 2027, D.C. Code 1-612.02 and 26 U.S.C. 7503: the legal holidays
 - Rev. Proc. 2025-32, sections 4.01, 4.03 and 4.14: 2026 rate schedules,
   capital gains thresholds, standard deduction
 - IRS News Release IR-2025-111 and Notice 2025-67: 2026 IRA limit and

@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 
+use crate::calendar::LegalHolidays;
 use crate::money::Cents;
 
 pub mod folder;
@@ -100,6 +101,9 @@ pub struct FederalTables {
     pub medicare: Medicare,
     pub futa: Futa,
     pub retirement: Retirement,
+    /// The legal holidays every due date of the year moves around, from
+    /// `legal-holidays.toml`.
+    pub legal_holidays: LegalHolidays,
 }
 
 impl FederalTables {
@@ -150,6 +154,22 @@ impl FederalTables {
         }
         if !(0..=crate::money::WHOLE_PPM).contains(&self.retirement.employer_deduction_ppm) {
             bail!("retirement.employer_deduction_ppm must be a share between 0 and 1,000,000 ppm");
+        }
+        self.legal_holidays.validate()?;
+        let first_day = chrono::NaiveDate::from_ymd_opt(self.year, 1, 1)
+            .with_context(|| format!("year {} has no January 1", self.year))?;
+        let last_day = chrono::NaiveDate::from_ymd_opt(self.year, 12, 31)
+            .with_context(|| format!("year {} has no December 31", self.year))?;
+        if self.legal_holidays.covers_from > first_day
+            || self.legal_holidays.covers_through < last_day
+        {
+            bail!(
+                "legal_holidays covers {} through {}, which does not span the payroll year {}; \
+                 transcribe that year's published holiday schedules",
+                self.legal_holidays.covers_from,
+                self.legal_holidays.covers_through,
+                self.year
+            );
         }
         Ok(())
     }

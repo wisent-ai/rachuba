@@ -1,7 +1,8 @@
 //! Quarterly and annual federal filing due dates.
 
-use super::holidays::irs_business_day_on_or_after;
+use super::holidays::LegalHolidays;
 use super::{last_day_of_month, quarter_end};
+use anyhow::Result;
 use chrono::{Datelike, NaiveDate};
 
 /// When the Form 941 for `quarter` of `year` is due: the last day of the first
@@ -24,13 +25,13 @@ use chrono::{Datelike, NaiveDate};
 /// # Panics
 ///
 /// Panics when `quarter` is outside 1 through 4, by way of [`quarter_end`].
-pub fn form_941_due(year: i32, quarter: u32) -> NaiveDate {
+pub fn form_941_due(holidays: &LegalHolidays, year: i32, quarter: u32) -> Result<NaiveDate> {
     let period_end = quarter_end(year, quarter);
     let (filing_year, filing_month) = match period_end.month() {
         12 => (year + 1, 1),
         month => (year, month + 1),
     };
-    irs_business_day_on_or_after(last_day_of_month(filing_year, filing_month))
+    holidays.irs_business_day_on_or_after(last_day_of_month(filing_year, filing_month))
 }
 
 /// When the Form 940 for `year` is due: January 31 of the following year, moved
@@ -50,8 +51,8 @@ pub fn form_941_due(year: i32, quarter: u32) -> NaiveDate {
 /// and holiday shift. This function returns the January 31 date, because
 /// whether the condition is met is a fact about the deposit ledger rather than
 /// about the calendar, and January 31 is correct either way.
-pub fn form_940_due(year: i32) -> NaiveDate {
-    irs_business_day_on_or_after(january_31_following(year))
+pub fn form_940_due(holidays: &LegalHolidays, year: i32) -> Result<NaiveDate> {
+    holidays.irs_business_day_on_or_after(january_31_following(year))
 }
 
 /// When the Form W-2 for `year` is due to the Social Security Administration:
@@ -69,8 +70,8 @@ pub fn form_940_due(year: i32) -> NaiveDate {
 /// 26 U.S.C. 6071(b) reaches only returns under subpart B of part III, and
 /// section 201(c) of the PATH Act narrowed it further. January 31 is also the
 /// date by which the employee's copy must be furnished, under 26 U.S.C. 6051(a).
-pub fn form_w2_due(year: i32) -> NaiveDate {
-    irs_business_day_on_or_after(january_31_following(year))
+pub fn form_w2_due(holidays: &LegalHolidays, year: i32) -> Result<NaiveDate> {
+    holidays.irs_business_day_on_or_after(january_31_following(year))
 }
 
 /// When an installment of an individual's estimated tax for `year` is due: the
@@ -82,10 +83,16 @@ pub fn form_w2_due(year: i32) -> NaiveDate {
 ///
 /// Panics when the date does not exist; the table loader refuses such a table
 /// before any installment is computed.
-pub fn estimated_tax_due(year: i32, month: u32, day: u32, year_offset: i32) -> NaiveDate {
+pub fn estimated_tax_due(
+    holidays: &LegalHolidays,
+    year: i32,
+    month: u32,
+    day: u32,
+    year_offset: i32,
+) -> Result<NaiveDate> {
     let statutory = NaiveDate::from_ymd_opt(year + year_offset, month, day)
         .expect("the table loader checked every installment date");
-    irs_business_day_on_or_after(statutory)
+    holidays.irs_business_day_on_or_after(statutory)
 }
 
 /// January 31 of the year after `year`, the statutory date shared by Form 940

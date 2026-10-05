@@ -75,6 +75,19 @@ pub struct Retirement {
     pub fill_room_saving: Cents,
 }
 
+/// The authorities every figure of the projection was read from, each as the
+/// year's table cites it, so a reader knows which year's law the numbers are.
+#[derive(Clone, Debug, Serialize)]
+pub struct TablesUsed {
+    /// The payroll tables: withholding, FICA, FUTA and retirement limits.
+    pub payroll: String,
+    /// The individual return: rates, deductions, thresholds and installments.
+    pub individual: String,
+    pub ira: String,
+    /// The legal holidays that moved the installment due dates.
+    pub legal_holidays: String,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct Projection {
     pub year: i32,
@@ -85,6 +98,7 @@ pub struct Projection {
     pub tax: TaxComputation,
     pub other_withholding: Cents,
     pub estimated: EstimatedTax,
+    pub tables: TablesUsed,
     pub retirement: Retirement,
     pub ira_employee: IraEligibility,
     /// IRA modified adjusted gross income after adding back the specified
@@ -180,7 +194,9 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
         .installments
         .last()
         .expect("the table loader refuses a year without installments");
-    let last_installment = estimated_tax_due(year, last.month, last.day, last.year_offset);
+    let holidays = &req.federal.legal_holidays;
+    let last_installment =
+        estimated_tax_due(holidays, year, last.month, last.day, last.year_offset)?;
     for p in &h.estimated_payments {
         if p.paid_on.year() < year || p.paid_on > last_installment {
             bail!(
@@ -193,6 +209,7 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
     let withholding = payroll.federal_withholding + h.other_withholding;
     let estimated = estimated_tax(&EstimatedInput {
         rules: &it.estimated_tax,
+        holidays,
         status: h.filing_status,
         year,
         total_tax: tax.total_tax,
@@ -200,7 +217,7 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
         payments: &h.estimated_payments,
         prior_year: h.prior_year_tax.zip(h.prior_year_agi),
         today: req.today,
-    });
+    })?;
 
     // Retirement.
     let ret = &req.federal.retirement;
@@ -279,6 +296,12 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
         tax,
         other_withholding: h.other_withholding,
         estimated,
+        tables: TablesUsed {
+            payroll: req.federal.source.clone(),
+            individual: req.tables.individual.source.clone(),
+            ira: req.tables.ira.source.clone(),
+            legal_holidays: req.federal.legal_holidays.source.clone(),
+        },
         retirement,
         ira_magi: magi,
         ira_employee,

@@ -6,7 +6,9 @@
 //! What it produces is the set of numbers to type, each labelled with its form
 //! line, computed from the same ledger that produced the paychecks.
 
-use crate::calendar::{deferral_remittance_due, employment_tax_deposit_due, DepositSchedule};
+use crate::calendar::{
+    deferral_remittance_due, employment_tax_deposit_due, DepositSchedule, LegalHolidays,
+};
 use crate::ledger::Ledger;
 use crate::money::Cents;
 use crate::tables::FederalTables;
@@ -150,17 +152,19 @@ pub fn check_limits(
 /// Runs of `year` whose money has not yet reached where it legally has to
 /// be, each with the date it is due: the deferral by the plan's safe harbor,
 /// the Form 941 taxes by the employer's deposit schedule. Either one is an
-/// error once its date has passed.
+/// error once its date has passed. A due date the holiday table does not
+/// cover is refused.
 pub fn outstanding_obligations(
     ledger: &Ledger,
+    holidays: &LegalHolidays,
     year: i32,
     schedule: DepositSchedule,
     today: chrono::NaiveDate,
-) -> Vec<Finding> {
+) -> anyhow::Result<Vec<Finding>> {
     let mut out = Vec::new();
     for r in ledger.runs_in_year(year) {
         if r.elective_deferral().is_positive() && r.deferral_remitted.is_none() {
-            let due = deferral_remittance_due(r.pay_date);
+            let due = deferral_remittance_due(holidays, r.pay_date)?;
             let (severity, verb) = past_or_coming(today, due);
             out.push(Finding {
                 severity,
@@ -173,7 +177,7 @@ pub fn outstanding_obligations(
             });
         }
         if r.taxes_deposited.is_none() && r.form_941_liability().is_positive() {
-            let due = employment_tax_deposit_due(schedule, r.pay_date);
+            let due = employment_tax_deposit_due(holidays, schedule, r.pay_date)?;
             let (severity, verb) = past_or_coming(today, due);
             out.push(Finding {
                 severity,
@@ -186,7 +190,7 @@ pub fn outstanding_obligations(
             });
         }
     }
-    out
+    Ok(out)
 }
 
 /// An obligation due on `due` is a warning until that day and an error after.
@@ -197,7 +201,3 @@ fn past_or_coming(today: chrono::NaiveDate, due: chrono::NaiveDate) -> (Severity
         (Severity::Warning, "is due")
     }
 }
-
-
-
-

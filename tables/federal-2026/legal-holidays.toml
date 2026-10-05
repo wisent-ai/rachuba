@@ -1,0 +1,138 @@
+# The legal holidays the 2026 payroll's due dates move around, as observed.
+# Which days are holidays is law Congress, the President and the District of
+# Columbia change (Juneteenth joined 5 U.S.C. 6103(a) in 2021), so the dates
+# are transcribed here from the published schedules, never computed in code.
+#
+# The table runs to the end of 2027 because the 2026 year's obligations fall
+# due into it: the January deposits for December payrolls, the fourth-quarter
+# Form 941, Forms 940, W-2 and W-3, and the last estimated tax installment.
+# A date outside covers_from..covers_through is refused by name, never read
+# as a working day.
+#
+# Sources:
+#   [1] 5 U.S.C. 6103(a) and (b); Executive Order 11582, section 3(a): a
+#       holiday falling on a Saturday is observed the Friday before, one on a
+#       Sunday the Monday after.
+#   [2] OPM, "Federal Holidays", 2026 and 2027 schedules.
+#       https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/
+#       The 2027 schedule lists Friday, December 31, 2027 as the New Year's
+#       Day 2028 holiday, January 1, 2028 being a Saturday.
+#   [3] D.C. Official Code section 1-612.02(a)(11) and (b)(1): District of
+#       Columbia Emancipation Day, April 16, observed as the federal ones.
+#   [4] 26 U.S.C. 7503 and IRS Publication 15 (2026), section 11, "Legal
+#       holiday": the IRS due-date holidays are the legal holidays of the
+#       District of Columbia, which lists April 16 among the 2026 ones.
+#   [5] 5 U.S.C. 6103(c): Inauguration Day, January 20 of each fourth year
+#       after 1965. Neither 2026 nor 2027 is such a year, so the District list
+#       holds no Inauguration Day.
+
+[legal_holidays]
+source = "5 U.S.C. 6103; E.O. 11582; OPM Federal Holidays 2026 and 2027; D.C. Code 1-612.02; 26 U.S.C. 7503; IRS Publication 15 (2026) section 11"
+covers_from = "2026-01-01"
+covers_through = "2027-12-31"
+
+# Days designated as holidays by the Federal Government, as observed, source
+# [1] and [2]. These alone decide the Department of Labor business day of
+# 29 CFR 2510.3-102(e).
+[[legal_holidays.federal]]
+name = "New Year's Day"
+observed = "2026-01-01"
+
+[[legal_holidays.federal]]
+name = "Birthday of Martin Luther King, Jr."
+observed = "2026-01-19"
+
+[[legal_holidays.federal]]
+name = "Washington's Birthday"
+observed = "2026-02-16"
+
+[[legal_holidays.federal]]
+name = "Memorial Day"
+observed = "2026-05-25"
+
+[[legal_holidays.federal]]
+name = "Juneteenth National Independence Day"
+observed = "2026-06-19"
+
+[[legal_holidays.federal]]
+name = "Independence Day (July 4 is a Saturday)"
+observed = "2026-07-03"
+
+[[legal_holidays.federal]]
+name = "Labor Day"
+observed = "2026-09-07"
+
+[[legal_holidays.federal]]
+name = "Columbus Day"
+observed = "2026-10-12"
+
+[[legal_holidays.federal]]
+name = "Veterans Day"
+observed = "2026-11-11"
+
+[[legal_holidays.federal]]
+name = "Thanksgiving Day"
+observed = "2026-11-26"
+
+[[legal_holidays.federal]]
+name = "Christmas Day"
+observed = "2026-12-25"
+
+[[legal_holidays.federal]]
+name = "New Year's Day"
+observed = "2027-01-01"
+
+[[legal_holidays.federal]]
+name = "Birthday of Martin Luther King, Jr."
+observed = "2027-01-18"
+
+[[legal_holidays.federal]]
+name = "Washington's Birthday"
+observed = "2027-02-15"
+
+[[legal_holidays.federal]]
+name = "Memorial Day"
+observed = "2027-05-31"
+
+[[legal_holidays.federal]]
+name = "Juneteenth National Independence Day (June 19 is a Saturday)"
+observed = "2027-06-18"
+
+[[legal_holidays.federal]]
+name = "Independence Day (July 4 is a Sunday)"
+observed = "2027-07-05"
+
+[[legal_holidays.federal]]
+name = "Labor Day"
+observed = "2027-09-06"
+
+[[legal_holidays.federal]]
+name = "Columbus Day"
+observed = "2027-10-11"
+
+[[legal_holidays.federal]]
+name = "Veterans Day"
+observed = "2027-11-11"
+
+[[legal_holidays.federal]]
+name = "Thanksgiving Day"
+observed = "2027-11-25"
+
+[[legal_holidays.federal]]
+name = "Christmas Day (December 25 is a Saturday)"
+observed = "2027-12-24"
+
+[[legal_holidays.federal]]
+name = "New Year's Day 2028 (January 1, 2028 is a Saturday)"
+observed = "2027-12-31"
+
+# The District's own legal holidays beyond the federal ones, sources [3] to
+# [5]. With the federal list they make the section 7503 legal holidays every
+# IRS deposit and filing date moves around.
+[[legal_holidays.district_of_columbia]]
+name = "District of Columbia Emancipation Day"
+observed = "2026-04-16"
+
+[[legal_holidays.district_of_columbia]]
+name = "District of Columbia Emancipation Day"
+observed = "2027-04-16"

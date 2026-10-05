@@ -16,11 +16,12 @@
 //! helps when income arrived late in the year, is not computed here: the
 //! shortfalls shown are what the regular method charges, the most it can be.
 
+use anyhow::Result;
 use chrono::NaiveDate;
 use serde::Serialize;
 
 use super::EstimatedTaxRules;
-use crate::calendar::estimated_tax_due;
+use crate::calendar::{estimated_tax_due, LegalHolidays};
 use crate::config::EstimatedPayment;
 use crate::money::{Cents, WHOLE_PPM};
 use crate::tables::FilingStatus;
@@ -59,6 +60,8 @@ pub struct EstimatedTax {
 
 pub struct EstimatedInput<'a> {
     pub rules: &'a EstimatedTaxRules,
+    /// The legal holidays that move each installment's due date.
+    pub holidays: &'a LegalHolidays,
     pub status: FilingStatus,
     pub year: i32,
     pub total_tax: Cents,
@@ -69,7 +72,7 @@ pub struct EstimatedInput<'a> {
     pub today: NaiveDate,
 }
 
-pub fn estimated_tax(i: &EstimatedInput<'_>) -> EstimatedTax {
+pub fn estimated_tax(i: &EstimatedInput<'_>) -> Result<EstimatedTax> {
     let r = i.rules;
     let current_year_share = i.total_tax.mul_ppm(r.current_year_ppm);
     let (prior_year_share, prior_year_ppm) = match i.prior_year {
@@ -95,37 +98,35 @@ pub fn estimated_tax(i: &EstimatedInput<'_>) -> EstimatedTax {
     let below_minimum = i.total_tax - i.withholding < r.minimum_balance_due;
 
     let count = r.installments.len() as i64;
-    let installments: Vec<Installment> = (1u32..)
-        .zip(r.installments.iter())
-        .map(|(n, date)| {
-            let due = estimated_tax_due(i.year, date.month, date.day, date.year_offset);
-            let share = WHOLE_PPM * i64::from(n) / count;
-            let required_to_date = required_annual_payment.mul_ppm(share);
-            let paid_by_due: Cents = i
-                .payments
-                .iter()
-                .filter(|p| p.paid_on <= due)
-                .map(|p| p.amount)
-                .sum();
-            let credited_to_date = i.withholding.mul_ppm(share) + paid_by_due;
-            let shortfall = if below_minimum {
-                Cents::ZERO
-            } else {
-                (required_to_date - credited_to_date).floor_zero()
-            };
-            Installment {
-                number: n,
-                due,
-                required_to_date,
-                credited_to_date,
-                shortfall,
-            }
-        })
-        .collect();
+    let mut installments: Vec<Installment> = Vec::with_capacity(r.installments.len());
+    for (n, date) in (1u32..).zip(r.installments.iter()) {
+        let due = estimated_tax_due(i.holidays, i.year, date.month, date.day, date.year_offset)?;
+        let share = WHOLE_PPM * i64::from(n) / count;
+        let required_to_date = required_annual_payment.mul_ppm(share);
+        let paid_by_due: Cents = i
+            .payments
+            .iter()
+            .filter(|p| p.paid_on <= due)
+            .map(|p| p.amount)
+            .sum();
+        let credited_to_date = i.withholding.mul_ppm(share) + paid_by_due;
+        let shortfall = if below_minimum {
+            Cents::ZERO
+        } else {
+            (required_to_date - credited_to_date).floor_zero()
+        };
+        installments.push(Installment {
+            number: n,
+            due,
+            required_to_date,
+            credited_to_date,
+            shortfall,
+        });
+    }
     let next_due = installments.iter().find(|x| x.due >= i.today).copied();
     let estimated_payments: Cents = i.payments.iter().map(|p| p.amount).sum();
 
-    EstimatedTax {
+    Ok(EstimatedTax {
         required_annual_payment,
         current_year_share,
         prior_year_share,
@@ -136,5 +137,5 @@ pub fn estimated_tax(i: &EstimatedInput<'_>) -> EstimatedTax {
         installments,
         next_due,
         balance_due: i.total_tax - i.withholding - estimated_payments,
-    }
+    })
 }

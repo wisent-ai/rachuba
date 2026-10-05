@@ -35,6 +35,9 @@ pub(super) fn cmd_run(
     ledger.append(computed.run.clone())?;
     let ytd = ledger.ytd(pay_date.year());
     let schedule = l.config.company.deposit_schedule.into();
+    let holidays = &l.federal.legal_holidays;
+    let eftps_due = calendar::employment_tax_deposit_due(holidays, schedule, pay_date)?;
+    let deferral_due = calendar::deferral_remittance_due(holidays, pay_date)?;
     let advisory = l.state.advisory(l.config.company.futa_credit_reduction_ppm);
     if cli.json {
         if commit {
@@ -46,9 +49,9 @@ pub(super) fn cmd_run(
             "advisory": advisory,
             "year_to_date": ytd,
             "form_941_liability": computed.run.form_941_liability(),
-            "eftps_due": calendar::employment_tax_deposit_due(schedule, pay_date),
+            "eftps_due": eftps_due,
             "elective_deferral": computed.run.elective_deferral(),
-            "deferral_due": calendar::deferral_remittance_due(pay_date),
+            "deferral_due": deferral_due,
             "recorded": commit,
             "ledger": cli.ledger.display().to_string(),
         }));
@@ -67,13 +70,13 @@ pub(super) fn cmd_run(
     println!(
         "Deposit {} of Form 941 taxes through EFTPS by {}.",
         computed.run.form_941_liability(),
-        calendar::employment_tax_deposit_due(schedule, pay_date)
+        eftps_due
     );
     if computed.run.elective_deferral().is_positive() {
         println!(
             "Send {} of elective deferral to the plan trustee by {} (seven business days).",
             computed.run.elective_deferral(),
-            calendar::deferral_remittance_due(pay_date)
+            deferral_due
         );
     }
 

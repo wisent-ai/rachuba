@@ -3,10 +3,9 @@
 use super::arguments::{Cli, Record};
 use super::{emit_json, load, today, year_or_current};
 use anyhow::{bail, Context, Result};
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use rachuba::{
     calendar,
-    config::Config,
     forms::{self, Severity},
     ledger::Ledger,
 };
@@ -15,7 +14,13 @@ pub(super) fn cmd_owed(cli: &Cli, year: Option<i32>) -> Result<()> {
     let year = year_or_current(year);
     let l = load(cli, year)?;
     let schedule = l.config.company.deposit_schedule.into();
-    let findings = forms::outstanding_obligations(&l.ledger, year, schedule, today());
+    let findings = forms::outstanding_obligations(
+        &l.ledger,
+        &l.federal.legal_holidays,
+        year,
+        schedule,
+        today(),
+    )?;
     let overdue = findings.iter().any(|f| f.severity == Severity::Error);
     if cli.json {
         emit_json(&serde_json::json!({ "year": year, "findings": findings, "overdue": overdue }))?;
@@ -44,8 +49,11 @@ pub(super) fn cmd_mark(
     deposit: bool,
 ) -> Result<()> {
     let on = on.unwrap_or_else(today);
-    let mut ledger = Ledger::load(&cli.ledger)?;
-    let run = ledger
+    let mut l = load(cli, pay_date.year())?;
+    let holidays = &l.federal.legal_holidays;
+    let schedule = l.config.company.deposit_schedule.into();
+    let run = l
+        .ledger
         .runs
         .iter_mut()
         .find(|r| r.pay_date == pay_date)
@@ -53,10 +61,7 @@ pub(super) fn cmd_mark(
 
     let (recorded, amount, due, late_notice) = if deposit {
         run.taxes_deposited = Some(on);
-        let due = calendar::employment_tax_deposit_due(
-            Config::load(&cli.config)?.company.deposit_schedule.into(),
-            pay_date,
-        );
+        let due = calendar::employment_tax_deposit_due(holidays, schedule, pay_date)?;
         (
             "deposit",
             run.form_941_liability(),
@@ -65,7 +70,7 @@ pub(super) fn cmd_mark(
         )
     } else {
         run.deferral_remitted = Some(on);
-        let due = calendar::deferral_remittance_due(pay_date);
+        let due = calendar::deferral_remittance_due(holidays, pay_date)?;
         (
             "remittance",
             run.elective_deferral(),
@@ -76,6 +81,7 @@ pub(super) fn cmd_mark(
             ),
         )
     };
+    let ledger = l.ledger;
     let late = on > due;
     if cli.json {
         ledger.save(&cli.ledger)?;
@@ -127,60 +133,66 @@ pub(super) fn cmd_calendar(cli: &Cli, year: Option<i32>) -> Result<()> {
     let year = year_or_current(year);
     let l = load(cli, year)?;
     let schedule = l.config.company.deposit_schedule.into();
+    let holidays = &l.federal.legal_holidays;
+
+    let mut quarters = Vec::new();
+    for q in 1..=calendar::QUARTERS_PER_YEAR {
+        quarters.push((
+            q,
+            calendar::quarter_end(year, q),
+            calendar::form_941_due(holidays, year, q)?,
+        ));
+    }
+    let form_940_due = calendar::form_940_due(holidays, year)?;
+    let form_w2_due = calendar::form_w2_due(holidays, year)?;
+    let mut runs = Vec::new();
+    for r in l.ledger.runs_in_year(year) {
+        runs.push((
+            r.pay_date,
+            calendar::employment_tax_deposit_due(holidays, schedule, r.pay_date)?,
+            calendar::deferral_remittance_due(holidays, r.pay_date)?,
+        ));
+    }
 
     if cli.json {
-        let quarters: Vec<serde_json::Value> = (1..=calendar::QUARTERS_PER_YEAR)
-            .map(|q| {
-                serde_json::json!({
-                    "quarter": q,
-                    "ends": calendar::quarter_end(year, q),
-                    "form_941_due": calendar::form_941_due(year, q),
-                })
+        let quarters: Vec<serde_json::Value> = quarters
+            .iter()
+            .map(|(q, ends, due)| {
+                serde_json::json!({ "quarter": q, "ends": ends, "form_941_due": due })
             })
             .collect();
-        let runs: Vec<serde_json::Value> = l
-            .ledger
-            .runs_in_year(year)
-            .map(|r| {
+        let runs: Vec<serde_json::Value> = runs
+            .iter()
+            .map(|(pay_date, eftps_due, deferral_due)| {
                 serde_json::json!({
-                    "pay_date": r.pay_date,
-                    "eftps_due": calendar::employment_tax_deposit_due(schedule, r.pay_date),
-                    "deferral_due": calendar::deferral_remittance_due(r.pay_date),
+                    "pay_date": pay_date,
+                    "eftps_due": eftps_due,
+                    "deferral_due": deferral_due,
                 })
             })
             .collect();
         return emit_json(&serde_json::json!({
             "year": year,
             "quarters": quarters,
-            "form_940_due": calendar::form_940_due(year),
-            "form_w2_due": calendar::form_w2_due(year),
+            "form_940_due": form_940_due,
+            "form_w2_due": form_w2_due,
             "runs": runs,
+            "legal_holidays": holidays.source,
         }));
     }
     println!("Due dates for {year}\n");
-    for q in 1..=calendar::QUARTERS_PER_YEAR {
-        println!(
-            "  Q{q} ends {}   Form 941 due {}",
-            calendar::quarter_end(year, q),
-            calendar::form_941_due(year, q)
-        );
+    for (q, ends, due) in &quarters {
+        println!("  Q{q} ends {ends}   Form 941 due {due}");
     }
     println!();
-    println!("  Form 940 for {year} due {}", calendar::form_940_due(year));
-    println!(
-        "  Forms W-2 and W-3 for {year} due {}",
-        calendar::form_w2_due(year)
-    );
+    println!("  Form 940 for {year} due {form_940_due}");
+    println!("  Forms W-2 and W-3 for {year} due {form_w2_due}");
     println!();
     println!("Per-run due dates for the runs recorded so far:\n");
-    for r in l.ledger.runs_in_year(year) {
-        println!(
-            "  {}  EFTPS by {}   deferral by {}",
-            r.pay_date,
-            calendar::employment_tax_deposit_due(schedule, r.pay_date),
-            calendar::deferral_remittance_due(r.pay_date)
-        );
+    for (pay_date, eftps_due, deferral_due) in &runs {
+        println!("  {pay_date}  EFTPS by {eftps_due}   deferral by {deferral_due}");
     }
+    println!("\nHolidays from {}.", holidays.source);
     Ok(())
 }
 

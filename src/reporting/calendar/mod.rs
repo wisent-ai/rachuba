@@ -1,9 +1,10 @@
 //! Federal payroll calendar: business days, deposit due dates, and filing
 //! due dates.
 //!
-//! This module owns every date computation the engine performs. It depends on
-//! `chrono` and on nothing else, so each rule below can be audited against the
-//! published authority without reading the rest of the crate.
+//! This module owns every date computation the engine performs. The holidays
+//! it moves dates around are not computed here: they are the year's
+//! [`LegalHolidays`] table, transcribed from the published schedules, and a
+//! date that table does not cover is refused rather than read as a working day.
 //!
 //! Two different definitions of "business day" govern a payroll, and this
 //! module deliberately keeps them apart:
@@ -18,8 +19,8 @@
 //!   observes one holiday the Federal Government does not, Emancipation Day on
 //!   April 16, and every fourth year it observes Inauguration Day. IRS
 //!   Publication 15 lists both among the legal holidays for the deposit rules.
-//!   The IRS due-date functions here use that wider set through the private
-//!   `is_irs_legal_holiday`.
+//!   The IRS due-date functions here use that wider set through
+//!   [`LegalHolidays::is_irs_legal_holiday`].
 //!
 //! Collapsing the two sets would schedule a deposit on a day the Treasury is
 //! closed, which is a failure-to-deposit penalty under section 6656. See the
@@ -58,11 +59,12 @@ mod deposits;
 mod filings;
 mod holidays;
 
+use anyhow::Result;
 use chrono::{Datelike, NaiveDate};
 pub use deposits::employment_tax_deposit_due;
 pub use filings::{estimated_tax_due, form_940_due, form_941_due, form_w2_due};
-pub use holidays::federal_holidays;
-use holidays::{is_observed_federal_holiday, is_weekend};
+use holidays::is_weekend;
+pub use holidays::{Holiday, LegalHolidays};
 
 /// Which set of deposit rules applies to an employer for a calendar year.
 ///
@@ -98,11 +100,12 @@ pub enum DepositSchedule {
 /// year, Inauguration Day. IRS Publication 15 (2026) lists April 16 among the
 /// 2026 legal holidays, and Publication 15 (2021) lists both April 16 and
 /// January 20. The IRS due-date functions in this module already apply the
-/// wider set through the private `is_irs_legal_holiday`; routing them through
+/// wider set through [`LegalHolidays::is_irs_legal_holiday`]; routing them through
 /// this function instead would move a deposit due date onto a day the District
 /// is closed. The two predicates are separate on purpose. Do not merge them.
-pub fn is_business_day(d: NaiveDate) -> bool {
-    !is_weekend(d) && !is_observed_federal_holiday(d)
+pub fn is_business_day(holidays: &LegalHolidays, d: NaiveDate) -> Result<bool> {
+    let holiday = holidays.is_federal_holiday(d)?;
+    Ok(!is_weekend(d) && !holiday)
 }
 
 /// The first business day strictly after `d`, under the DOL predicate
@@ -110,12 +113,12 @@ pub fn is_business_day(d: NaiveDate) -> bool {
 ///
 /// Strictly after: passing a business day returns the following one. To move a
 /// due date that may already be valid, test [`is_business_day`] first.
-pub fn next_business_day(d: NaiveDate) -> NaiveDate {
+pub fn next_business_day(holidays: &LegalHolidays, d: NaiveDate) -> Result<NaiveDate> {
     let mut next = add_days(d, 1);
-    while !is_business_day(next) {
+    while !is_business_day(holidays, next)? {
         next = add_days(next, 1);
     }
-    next
+    Ok(next)
 }
 
 /// The `n`th business day following `d`, counting `d` itself as day zero
@@ -125,12 +128,12 @@ pub fn next_business_day(d: NaiveDate) -> NaiveDate {
 /// from "the day on which such amount would otherwise have been payable to the
 /// participant in cash" and asks for the 7th business day following it.
 /// `n == 0` returns `d` unchanged.
-pub fn add_business_days(d: NaiveDate, n: u32) -> NaiveDate {
+pub fn add_business_days(holidays: &LegalHolidays, d: NaiveDate, n: u32) -> Result<NaiveDate> {
     let mut current = d;
     for _ in 0..n {
-        current = next_business_day(current);
+        current = next_business_day(holidays, current)?;
     }
-    current
+    Ok(current)
 }
 
 /// The calendar quarter containing `d`, numbered 1 through 4.
@@ -184,8 +187,8 @@ pub fn quarter_end(year: i32, quarter: u32) -> NaiveDate {
 /// Business days here are the DOL's own, 2510.3-102(e): Saturdays, Sundays, and
 /// federal holidays are skipped. District of Columbia holidays are not, because
 /// they are not "designated as a holiday by the Federal Government".
-pub fn deferral_remittance_due(pay_date: NaiveDate) -> NaiveDate {
-    add_business_days(pay_date, 7)
+pub fn deferral_remittance_due(holidays: &LegalHolidays, pay_date: NaiveDate) -> Result<NaiveDate> {
+    add_business_days(holidays, pay_date, 7)
 }
 
 /// `d` shifted by `n` days, negative to go backwards.

@@ -1,7 +1,8 @@
 //! Monthly and semiweekly employment-tax deposit due dates.
 
-use super::holidays::{irs_business_day_on_or_after, is_irs_legal_holiday};
+use super::holidays::LegalHolidays;
 use super::{add_days, DepositSchedule};
+use anyhow::Result;
 use chrono::{Datelike, NaiveDate, Weekday};
 
 /// When the employment taxes on wages paid on `pay_date` must be deposited.
@@ -32,14 +33,18 @@ use chrono::{Datelike, NaiveDate, Weekday};
 /// business day.
 ///
 /// "Legal holiday" throughout is the section 7503 sense, so Emancipation Day
-/// and Inauguration Day count. See `is_irs_legal_holiday`.
+/// and Inauguration Day count. See [`LegalHolidays::is_irs_legal_holiday`].
 ///
 /// The semiweekly deposit period can straddle two return periods, in which case
 /// the wages on either side of the boundary carry separate deposit obligations
 /// with separate Schedule B lines. 26 CFR 31.6302-1(c)(2)(ii). Both obligations
 /// share the due date this function returns, so callers split the liability by
 /// quarter and call once per pay date.
-pub fn employment_tax_deposit_due(schedule: DepositSchedule, pay_date: NaiveDate) -> NaiveDate {
+pub fn employment_tax_deposit_due(
+    holidays: &LegalHolidays,
+    schedule: DepositSchedule,
+    pay_date: NaiveDate,
+) -> Result<NaiveDate> {
     match schedule {
         DepositSchedule::Monthly => {
             let (year, month) = match pay_date.month() {
@@ -48,7 +53,7 @@ pub fn employment_tax_deposit_due(schedule: DepositSchedule, pay_date: NaiveDate
             };
             let scheduled =
                 NaiveDate::from_ymd_opt(year, month, 15).expect("every month has a 15th");
-            irs_business_day_on_or_after(scheduled)
+            holidays.irs_business_day_on_or_after(scheduled)
         }
         DepositSchedule::Semiweekly => {
             // The deposit periods are Wednesday through Friday and Saturday
@@ -74,10 +79,13 @@ pub fn employment_tax_deposit_due(schedule: DepositSchedule, pay_date: NaiveDate
             // Tuesday close. Either way they are the scheduled date and the two
             // weekdays before it, so counting back from the scheduled date
             // covers both bands without a second weekday match.
-            let intervening_holidays = (0i32..3)
-                .filter(|&back| is_irs_legal_holiday(add_days(scheduled, -back)))
-                .count();
-            irs_business_day_on_or_after(add_days(scheduled, intervening_holidays as i32))
+            let mut intervening_holidays = 0i32;
+            for back in 0i32..3 {
+                if holidays.is_irs_legal_holiday(add_days(scheduled, -back))? {
+                    intervening_holidays += 1;
+                }
+            }
+            holidays.irs_business_day_on_or_after(add_days(scheduled, intervening_holidays))
         }
     }
 }

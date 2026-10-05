@@ -55,9 +55,10 @@ pub(super) fn cmd_form(cli: &Cli, which: &FormKind) -> Result<()> {
             }
             let l = load(cli, year)?;
             let f = Form941::build(&l.ledger, &l.federal, year, *quarter);
+            let due = calendar::form_941_due(&l.federal.legal_holidays, year, *quarter)?;
             if cli.json {
                 return emit_json(&serde_json::json!({
-                    "form": "941", "due": calendar::form_941_due(year, *quarter), "values": f,
+                    "form": "941", "due": due, "values": f,
                 }));
             }
             println!("Form 941, {} Q{}\n", f.year, f.quarter);
@@ -89,15 +90,16 @@ pub(super) fn cmd_form(cli: &Cli, which: &FormKind) -> Result<()> {
                     f.overpayment.plain()
                 );
             }
-            println!("\n  Due {}.", calendar::form_941_due(year, *quarter));
+            println!("\n  Due {due}.");
         }
         FormKind::F940 { year } => {
             let year = year_or_current(*year);
             let l = load(cli, year)?;
             let f = Form940::build(&l.ledger, &l.federal, year);
+            let due = calendar::form_940_due(&l.federal.legal_holidays, year)?;
             if cli.json {
                 return emit_json(&serde_json::json!({
-                    "form": "940", "due": calendar::form_940_due(year), "values": f,
+                    "form": "940", "due": due, "values": f,
                 }));
             }
             println!("Form 940, {}\n", f.year);
@@ -122,7 +124,7 @@ pub(super) fn cmd_form(cli: &Cli, which: &FormKind) -> Result<()> {
             } else {
                 println!("\n  Part 5 not required: the annual tax is at or below the threshold.");
             }
-            println!("\n  Due {}.", calendar::form_940_due(year));
+            println!("\n  Due {due}.");
         }
         FormKind::W2 { year } => {
             let year = year_or_current(*year);
@@ -141,10 +143,11 @@ pub(super) fn cmd_form(cli: &Cli, which: &FormKind) -> Result<()> {
                 &l.config.company.state,
                 locality,
             );
+            let due = calendar::form_w2_due(&l.federal.legal_holidays, year)?;
             if cli.json {
                 return emit_json(&serde_json::json!({
                     "form": "W-2",
-                    "due": calendar::form_w2_due(year),
+                    "due": due,
                     "employee": l.config.employee.name,
                     "ssn_last4": l.config.employee.ssn_last4,
                     "employer": l.config.company.legal_name,
@@ -187,9 +190,8 @@ pub(super) fn cmd_form(cli: &Cli, which: &FormKind) -> Result<()> {
                 println!("  {:<6}{:<52}{:>12}", "20", "Locality name", loc);
             }
             println!(
-                "\n  Due {}. File at SSA Business Services Online; the full Social Security \
-                 number is entered there, not stored here.",
-                calendar::form_w2_due(year)
+                "\n  Due {due}. File at SSA Business Services Online; the full Social Security \
+                 number is entered there, not stored here."
             );
         }
     }
