@@ -49,7 +49,12 @@ pub fn compute(req: &RunRequest<'_>) -> Result<ComputedRun> {
     let ytd = req.ledger.ytd_before(req.pay_date);
     let mut notes = Vec::new();
 
-    let gross = req.gross_override.unwrap_or(cfg.employee.gross_per_period);
+    // A stated gross replaces the configured one for this run; with none
+    // stated the run is paid at the configured gross.
+    let gross = match req.gross_override {
+        Some(stated) => stated,
+        None => cfg.employee.gross_per_period,
+    };
 
     // Step 2: elective deferrals, capped at the year's remaining room.
     let ceiling = ft.retirement.deferral_ceiling(cfg.employee.age_this_year);
@@ -81,14 +86,15 @@ pub fn compute(req: &RunRequest<'_>) -> Result<ComputedRun> {
         ));
     }
 
-    // Employer contribution, held under both the 25%-of-compensation limit and
-    // the section 415(c) annual additions cap.
+    // Employer contribution follows the loaded year's deductible compensation
+    // share and the section 415(c) annual additions cap.
     let mut employer = cfg.retirement_401k.employer.applied_to(gross);
-    let comp_cap = (ytd.gross + gross).mul_ppm(250_000) - ytd.employer_401k;
+    let comp_cap =
+        (ytd.gross + gross).mul_ppm(ft.retirement.employer_deduction_ppm) - ytd.employer_401k;
     if employer > comp_cap.floor_zero() {
         notes.push(format!(
-            "employer contribution reduced from {employer} to {} by the 25%-of-compensation limit.",
-            comp_cap.floor_zero()
+            "employer contribution reduced from {employer} to {} by the compensation-share limit ({} ppm) in the {} federal table.",
+            comp_cap.floor_zero(), ft.retirement.employer_deduction_ppm, ft.year
         ));
         employer = comp_cap.floor_zero();
     }

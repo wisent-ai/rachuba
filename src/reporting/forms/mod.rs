@@ -109,14 +109,14 @@ pub fn check_limits(
         });
     }
 
-    // The employer contribution is capped at 25% of compensation.
-    let employer_cap = y.gross.mul_ppm(250_000);
+    // The compensation share comes from the loaded year's federal table.
+    let employer_cap = y.gross.mul_ppm(r.employer_deduction_ppm);
     if y.employer_401k > employer_cap {
         out.push(Finding {
             severity: Severity::Error,
             message: format!(
-                "employer contributions of {} exceed 25% of {} compensation ({}).",
-                y.employer_401k, y.gross, employer_cap
+                "employer contributions of {} exceed the {} federal table's compensation share ({} ppm) of {} compensation ({}).",
+                y.employer_401k, tables.year, r.employer_deduction_ppm, y.gross, employer_cap
             ),
         });
     }

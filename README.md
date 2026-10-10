@@ -219,6 +219,9 @@ The folder is found through `RACHUBA_TABLES` when that is set, otherwise as
 `tables` beside `rachuba.toml`. A set `RACHUBA_TABLES` that is not a directory
 is refused rather than skipped, so a typo cannot make payroll read another
 company's tables.
+Payroll computation, ledger limit checks and return projections all use the
+loaded federal table's `retirement.employer_deduction_ppm` compensation share.
+Cap diagnostics name the table year and declared share rather than a fixed percentage.
 
 `rachuba init` writes both `rachuba.toml` and an empty `ledger.toml`, and refuses
 to overwrite either. Every other command refuses to run without the ledger,
