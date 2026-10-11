@@ -146,7 +146,7 @@ pub(super) fn nys_exact(
         .nys
         .period_threshold_quantum
         .get(period)
-        .unwrap_or(&Cents(100));
+        .with_context(|| format!("nys.period_threshold_quantum has no entry for {period}"))?;
     let rows = derive_schedule(t.nys.brackets.pick(status), n, quantum, &[], period);
     Ok(method_ii(&rows, net))
 }
@@ -182,7 +182,7 @@ pub(super) fn nyc_exact(
         .nyc
         .period_threshold_quantum
         .get(period)
-        .unwrap_or(&Cents(100));
+        .with_context(|| format!("nyc.period_threshold_quantum has no entry for {period}"))?;
     let rows = derive_schedule(
         t.nyc.brackets.pick(status),
         n,
