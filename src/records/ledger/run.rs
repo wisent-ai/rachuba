@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PayrollRun {
     pub pay_date: NaiveDate,
-    /// Free-form label: "regular", "bonus", "correction".
-    #[serde(default = "default_kind")]
+    /// Free-form label: "regular", "bonus", "correction". Every run Rachuba
+    /// records carries it; a ledger row without one is refused, not guessed.
     pub kind: String,
 
     pub gross: Cents,
@@ -61,10 +61,6 @@ pub struct PayrollRun {
     /// Date the Form 941 taxes for this run were deposited through EFTPS.
     #[serde(default)]
     pub taxes_deposited: Option<NaiveDate>,
-}
-
-fn default_kind() -> String {
-    "regular".to_string()
 }
 
 impl PayrollRun {
