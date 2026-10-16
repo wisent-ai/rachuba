@@ -56,8 +56,13 @@ fn today() -> NaiveDate {
     Local::now().date_naive()
 }
 
+/// A year flag the help documents as "Defaults to the current calendar
+/// year": the year given, or this one when none was.
 fn year_or_current(y: Option<i32>) -> i32 {
-    y.unwrap_or_else(|| today().year())
+    match y {
+        Some(year) => year,
+        None => today().year(),
+    }
 }
 
 struct Loaded {

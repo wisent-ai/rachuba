@@ -49,8 +49,10 @@ pub(super) enum Command {
 
     /// Print Worksheet 1A line by line for a prospective run.
     Explain {
+        /// Pay date. Defaults to today. The tax year is the year of this date.
         #[arg(long)]
         pay_date: Option<NaiveDate>,
+        /// Override the configured gross for this period.
         #[arg(long)]
         gross: Option<Cents>,
     },
@@ -63,12 +65,14 @@ pub(super) enum Command {
 
     /// Year-to-date totals.
     Ytd {
+        /// Tax year. Defaults to the current calendar year.
         #[arg(long)]
         year: Option<i32>,
     },
 
     /// Money that has to move, and by when.
     Owed {
+        /// Tax year. Defaults to the current calendar year.
         #[arg(long)]
         year: Option<i32>,
     },
@@ -86,6 +90,7 @@ pub(super) enum Command {
     Remitted {
         #[arg(long)]
         pay_date: NaiveDate,
+        /// Date the deferral reached the trustee. Defaults to today.
         #[arg(long)]
         on: Option<NaiveDate>,
     },
@@ -109,12 +114,14 @@ pub(super) enum Command {
 
     /// Filing and deposit due dates for a year.
     Calendar {
+        /// Tax year. Defaults to the current calendar year.
         #[arg(long)]
         year: Option<i32>,
     },
 
     /// Check the year against the statutory limits.
     Check {
+        /// Tax year. Defaults to the current calendar year.
         #[arg(long)]
         year: Option<i32>,
     },
@@ -129,6 +136,7 @@ pub(super) enum Command {
     /// tax installments, 401(k) room and IRA eligibility. Reads the
     /// [household] section of the configuration and records nothing.
     Return {
+        /// Tax year. Defaults to the current calendar year.
         #[arg(long)]
         year: Option<i32>,
     },
@@ -148,6 +156,7 @@ pub(super) enum FormKind {
     /// Employer's Quarterly Federal Tax Return.
     #[command(name = "941")]
     F941 {
+        /// Tax year. Defaults to the current calendar year.
         #[arg(long)]
         year: Option<i32>,
         #[arg(long)]
@@ -156,11 +165,13 @@ pub(super) enum FormKind {
     /// Employer's Annual Federal Unemployment Tax Return.
     #[command(name = "940")]
     F940 {
+        /// Tax year. Defaults to the current calendar year.
         #[arg(long)]
         year: Option<i32>,
     },
     /// Wage and Tax Statement.
     W2 {
+        /// Tax year. Defaults to the current calendar year.
         #[arg(long)]
         year: Option<i32>,
     },
