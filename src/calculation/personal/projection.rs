@@ -9,10 +9,11 @@
 //! projected runs are dated at the end of the year and never recorded.
 
 use anyhow::{bail, Result};
-use chrono::{Datelike, Days, NaiveDate};
+use chrono::{Datelike, NaiveDate};
 use serde::Serialize;
 
 use super::estimated::{estimated_tax, EstimatedInput};
+use super::ira::{eligibility, IraPerson};
 use super::{
     compute_tax, EstimatedTax, IraEligibility, ReturnIncome, ReturnTables, TaxComputation,
 };
@@ -20,12 +21,10 @@ use crate::calendar::estimated_tax_due;
 use crate::config::{Config, Household};
 use crate::ledger::Ledger;
 use crate::money::Cents;
-use crate::run::{self, RunRequest};
 use crate::state::StateTables;
 use crate::tables::{FederalTables, FilingStatus};
 
-/// The label of a run paid on the regular schedule.
-const REGULAR_RUN: &str = "regular";
+mod payroll;
 
 pub struct ProjectionRequest<'a> {
     pub year: i32,
@@ -64,8 +63,9 @@ pub struct Retirement {
     /// Deferral per remaining period that reaches the ceiling, when a period
     /// remains.
     pub per_period_to_fill: Option<Cents>,
-    /// Largest employer contribution for the year: 25% of compensation, inside
-    /// the section 415(c) limit after the deferrals.
+    /// Largest employer contribution for the year: the year's federal
+    /// table's section 404(a)(3) share of compensation, inside the section
+    /// 415(c) limit after the deferrals.
     pub employer_maximum: Cents,
     pub employer_projected: Cents,
     /// Federal tax the projected pre-tax deferrals save against the same
@@ -113,53 +113,12 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
     let h = req.household;
     let year = req.year;
 
-    // The ledger up to the end of the year, completed with projected runs.
-    let mut ledger = Ledger {
-        runs: req
-            .ledger
-            .runs
-            .iter()
-            .filter(|r| r.pay_date.year() <= year)
-            .cloned()
-            .collect(),
-    };
-    let periods = u32::try_from(cfg.employee.pay_frequency.periods_per_year())?;
-    let recorded = ledger
-        .runs_in_year(year)
-        .filter(|r| r.kind == REGULAR_RUN)
-        .count();
-    let recorded = u32::try_from(recorded)?;
-    let remaining = periods.saturating_sub(recorded);
-    let actual = ledger.ytd(year);
-    let year_end = NaiveDate::from_ymd_opt(year, 12, 31).expect("December 31 exists");
-    for k in 0..remaining {
-        let pay_date = year_end - Days::new(u64::from(remaining - 1 - k));
-        if let Some(last) = ledger.runs.last() {
-            if pay_date < last.pay_date {
-                bail!(
-                    "{remaining} {} pay periods remain in {year} by count, but the ledger's last \
-                     run is on {}, leaving no room before December 31 to place them. Record the \
-                     runs that were paid, or label off-cycle runs with --kind so they are not \
-                     counted as regular.",
-                    cfg.employee.pay_frequency.label(),
-                    last.pay_date
-                );
-            }
-        }
-        let computed = run::compute(&RunRequest {
-            config: cfg,
-            federal_tables: req.federal,
-            state_tables: req.state,
-            ledger: &ledger,
-            pay_date,
-            gross_override: None,
-            kind: "projected".to_string(),
-        })?;
-        ledger.append(computed.run)?;
-    }
-    let y = ledger.ytd(year);
+    let completed = payroll::complete_year(req)?;
+    let actual = completed.recorded_totals;
+    let remaining = completed.remaining;
+    let y = completed.ledger.ytd(year);
     let payroll = PayrollYear {
-        recorded_runs: recorded,
+        recorded_runs: completed.recorded,
         remaining_periods: remaining,
         gross: y.gross,
         w2_box1: y.w2_box1(),
@@ -170,11 +129,16 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
         federal_withholding: y.federal_income_tax + y.additional_medicare,
     };
 
-    // The return.
+    // The return. The household's validation requires the spouse's Medicare
+    // wages whenever spouse wages are given, so none given means none earned.
+    let spouse_medicare_wages = match h.spouse_medicare_wages {
+        Some(wages) => wages,
+        None => Cents::ZERO,
+    };
     let income = ReturnIncome {
         status: h.filing_status,
         wages: payroll.w2_box1 + h.spouse_wages,
-        medicare_wages: payroll.medicare_wages + h.spouse_medicare_wages.unwrap_or_default(),
+        medicare_wages: payroll.medicare_wages + spouse_medicare_wages,
         other_income: h.other_income,
         interest_and_ordinary_dividends: h.interest_and_ordinary_dividends,
         qualified_dividends: h.qualified_dividends,
@@ -189,11 +153,9 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
     let tax = compute_tax(it, &income);
 
     // Estimated tax.
-    let last = it
-        .estimated_tax
-        .installments
-        .last()
-        .expect("the table loader refuses a year without installments");
+    let Some(last) = it.estimated_tax.installments.last() else {
+        bail!("the {year} individual table declares no estimated-tax installment");
+    };
     let holidays = &req.federal.legal_holidays;
     let last_installment =
         estimated_tax_due(holidays, year, last.month, last.day, last.year_offset)?;
@@ -227,7 +189,8 @@ pub fn project(req: &ProjectionRequest<'_>) -> Result<Projection> {
     let per_period_to_fill = (remaining > 0).then(|| {
         let room = (ceiling - actual.elective_deferral()).floor_zero();
         let n = i64::from(remaining);
-        Cents((room.0 + n - 1) / n)
+        // Rounded up to the cent, so the periods together reach the ceiling.
+        Cents(room.0.div_euclid(n) + i64::from(room.0.rem_euclid(n) > 0))
     });
     let compensation = y.gross.min(ret.compensation_limit);
     let counted_deferral = projected_deferral.min(ret.elective_deferral_limit);

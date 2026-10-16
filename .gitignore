@@ -1,3 +1,4 @@
 /target
+/.build
 rachuba.toml
 ledger.toml
