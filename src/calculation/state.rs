@@ -74,9 +74,19 @@ impl StateTables {
             "NY" => Ok(StateTables::NewYork(Box::new(state_ny::Tables::load(
                 &path, year,
             )?))),
-            "CA" => Ok(StateTables::California(Box::new(state_ca::Tables::load(
-                &path, year,
-            )?))),
+            "CA" => {
+                let tables = state_ca::Tables::load(&path, year)?;
+                for (period, table) in &tables.pit.brackets {
+                    starts_at_zero(
+                        period,
+                        "single_or_dual_income_married",
+                        &table.single_or_dual_income_married,
+                    )?;
+                    starts_at_zero(period, "married_one_employer", &table.married_one_employer)?;
+                    starts_at_zero(period, "head_of_household", &table.head_of_household)?;
+                }
+                Ok(StateTables::California(Box::new(tables)))
+            }
             other => bail!(
                 "no state engine for {other}. Supported: CA, NY. Adding a state needs both a data \
                  folder at {} and a computation module, because withholding methods differ in \
@@ -99,6 +109,21 @@ impl StateTables {
             StateTables::NewYork(_) => None,
             StateTables::California(t) => state_ca::futa_advisory(t, futa_credit_reduction_ppm),
         }
+    }
+}
+
+/// A rate table is read by taking the highest row at or below the taxable
+/// wage, so its rows must start at zero; one that starts higher would leave
+/// every wage below its first row without a rate, which is a silent zero.
+fn starts_at_zero(period: &str, status: &str, rows: &[(Cents, Cents, i64)]) -> Result<()> {
+    match rows.first() {
+        Some(row) if row.0 == Cents::ZERO => Ok(()),
+        Some(row) => bail!(
+            "pit.brackets.{period}.{status} starts at {}, must start at 0.00 so every taxable wage \
+             has a row",
+            row.0
+        ),
+        None => bail!("pit.brackets.{period}.{status} has no rows"),
     }
 }
 
