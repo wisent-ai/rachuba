@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "product": "rachuba",
+  "releases": false,
+  "reason": "README installs rachuba by building it from the checkout with cargo build --release, and the repository declares no package, image, workflow or versioned artifact publisher."
+}
