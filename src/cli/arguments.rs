@@ -70,6 +70,38 @@ pub(super) enum Command {
         year: Option<i32>,
     },
 
+    /// Every recorded run of a year, oldest first: its pay date, kind, gross
+    /// and net pay, and whether its taxes were deposited and its deferral
+    /// remitted.
+    Runs {
+        /// Tax year. Defaults to the current calendar year.
+        #[arg(long)]
+        year: Option<i32>,
+        /// Only the runs of this kind ("regular", "bonus"), case ignored.
+        #[arg(long)]
+        kind: Option<String>,
+        /// Only the runs whose taxes are not deposited yet, or whose
+        /// deferral is not remitted yet.
+        #[arg(long)]
+        pending: bool,
+    },
+
+    /// Every recorded run of a year as one CSV sheet, a row per run, oldest
+    /// first; the columns are the fields the ledger records for a run.
+    Sheet {
+        /// Tax year. Defaults to the current calendar year.
+        #[arg(long)]
+        year: Option<i32>,
+    },
+
+    /// What payroll cost the company in each month of a year, and in the
+    /// whole year: gross, employer taxes, employer 401(k) and the total.
+    Cost {
+        /// Tax year. Defaults to the current calendar year.
+        #[arg(long)]
+        year: Option<i32>,
+    },
+
     /// Money that has to move, and by when.
     Owed {
         /// Tax year. Defaults to the current calendar year.

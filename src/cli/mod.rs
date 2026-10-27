@@ -1,6 +1,7 @@
 //! Command dispatch and shared loading of payroll configuration and state.
 
 mod arguments;
+mod history;
 mod obligations;
 mod paychecks;
 mod reports;
@@ -17,6 +18,7 @@ use rachuba::{
     state::StateTables,
     tables::{self, FederalTables},
 };
+use history::{cmd_cost, cmd_runs, cmd_sheet};
 use reports::{cmd_form, cmd_return, cmd_ytd};
 use std::path::Path;
 
@@ -33,6 +35,9 @@ pub(super) fn main() -> Result<()> {
         Command::Explain { pay_date, gross } => cmd_explain(&cli, *pay_date, *gross),
         Command::Stub { pay_date } => cmd_stub(&cli, *pay_date),
         Command::Ytd { year } => cmd_ytd(&cli, *year),
+        Command::Runs { year, kind, pending } => cmd_runs(&cli, *year, kind.as_deref(), *pending),
+        Command::Sheet { year } => cmd_sheet(&cli, *year),
+        Command::Cost { year } => cmd_cost(&cli, *year),
         Command::Owed { year } => cmd_owed(&cli, *year),
         Command::Deposited { pay_date, on } => cmd_mark(&cli, *pay_date, *on, true),
         Command::Remitted { pay_date, on } => cmd_mark(&cli, *pay_date, *on, false),
