@@ -36,15 +36,24 @@ pub(super) fn period_key(freq: PayFrequency) -> Result<&'static str> {
 /// Derive one payroll period's schedule from the annual one, per the rule that
 /// reproduces every printed row: thresholds round half to even at the period's
 /// quantum, base amounts round half to even to the cent, rates pass through.
+/// A quantum of zero or less and an override naming a row the schedule does
+/// not have are refused, naming the period and the table.
 pub(super) fn derive_schedule(
     annual: &AnnualSchedule,
     periods: i64,
     quantum: Cents,
     overrides: &[PeriodOverride],
     period: &str,
-) -> Vec<(Cents, Cents, i64)> {
+) -> Result<Vec<(Cents, Cents, i64)>> {
+    if quantum.0 <= 0 {
+        bail!(
+            "period_threshold_quantum for {period} is {} cents; a threshold quantum is a \
+             positive number of cents, so correct the tables' entry for {period}",
+            quantum.0
+        );
+    }
     let n = periods as i128;
-    let q = quantum.0.max(1) as i128;
+    let q = quantum.0 as i128;
     let mut rows: Vec<(Cents, Cents, i64)> = annual
         .rows
         .iter()
@@ -57,17 +66,23 @@ pub(super) fn derive_schedule(
         })
         .collect();
 
+    let count = rows.len();
     for o in overrides.iter().filter(|o| o.period == period) {
-        if let Some(row) = rows.get_mut(o.row.saturating_sub(1)) {
-            if let Some(v) = o.at_least {
-                row.0 = v;
-            }
-            if let Some(v) = o.base_tax {
-                row.1 = v;
-            }
+        let Some(row) = o.row.checked_sub(1).and_then(|index| rows.get_mut(index)) else {
+            bail!(
+                "period_table_overrides names row {} for {period}, but the derived {period} \
+                 schedule has rows 1 to {count}; correct the override's one-based row",
+                o.row
+            );
+        };
+        if let Some(v) = o.at_least {
+            row.0 = v;
+        }
+        if let Some(v) = o.base_tax {
+            row.1 = v;
         }
     }
-    rows
+    Ok(rows)
 }
 
 /// Method II: find the row and build the exact tax as a rational.
@@ -147,7 +162,7 @@ pub(super) fn nys_exact(
         .period_threshold_quantum
         .get(period)
         .with_context(|| format!("nys.period_threshold_quantum has no entry for {period}"))?;
-    let rows = derive_schedule(t.nys.brackets.pick(status), n, quantum, &[], period);
+    let rows = derive_schedule(t.nys.brackets.pick(status), n, quantum, &[], period)?;
     Ok(method_ii(&rows, net))
 }
 
@@ -189,7 +204,7 @@ pub(super) fn nyc_exact(
         quantum,
         &t.nyc.period_table_overrides,
         period,
-    );
+    )?;
     Ok(method_ii(&rows, net))
 }
 
